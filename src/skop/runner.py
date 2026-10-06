@@ -109,6 +109,36 @@ _current: contextvars.ContextVar[_Ambient | None] = contextvars.ContextVar(
 )
 
 
+@contextlib.contextmanager
+def ambient(
+    runner: Any,
+    on_progress: Callable[[Any], None] | None = None,
+    on_start: Callable[[Any], None] | None = None,
+) -> Iterator[None]:
+    """Route a workflow's nested op calls through *runner* while this runs.
+
+    ``Runner`` makes itself ambient while a workflow runs, so the ops a
+    workflow calls reuse its warm workers and report to whoever started it.
+    That leaves out a runner which merely *wraps* one -- a recorder, say --
+    because the wrapper only ever sees the workflow call, never the ops inside
+    it. Installing it here puts it in front of those instead; ``Runner`` then
+    leaves it alone, so the outermost installer wins.
+
+    ``on_progress`` and ``on_start`` stand in for the sub-ops' own, so progress
+    and Cancel from inside a workflow reach whoever started the workflow.
+    """
+    task = _HostTask(on_progress)
+    if on_start is not None:
+        on_start(task)
+    reporting = _progress._bind(task)
+    token = _current.set(_Ambient(runner, task))
+    try:
+        yield
+    finally:
+        _current.reset(token)
+        _progress._unbind(reporting)
+
+
 def _default_root() -> Path:
     """The directory holding the ``skop`` package."""
     return Path(__file__).resolve().parent.parent
@@ -470,16 +500,26 @@ class Runner:
         on_progress: Callable[[Any], None] | None,
         on_start: Callable[[Any], None] | None,
     ) -> Any:
-        """Call a workflow in this process, with this runner made ambient."""
+        """Call a workflow in this process, with this runner made ambient.
+
+        An ambient already installed is the outermost runner's, and it stays:
+        the ops a workflow calls go through the runner its caller used, not
+        through whichever ``Runner`` happens to be unwrapping them. Without
+        that a wrapper around a Runner -- a recorder, a panel's bookkeeping --
+        would never see the ops inside a workflow. See ``ambient``.
+        """
         task = _HostTask(on_progress)
         if on_start is not None:
             on_start(task)
         reporting = _progress._bind(task)
-        ambient = _current.set(_Ambient(self, task))
+        token = None
+        if _current.get() is None:
+            token = _current.set(_Ambient(self, task))
         try:
             return fn(**call_args)
         finally:
-            _current.reset(ambient)
+            if token is not None:
+                _current.reset(token)
             _progress._unbind(reporting)
 
     #: Run in a worker to hand GPU memory back. Torch frees tensors into its
@@ -635,11 +675,12 @@ def default_runner() -> Runner:
 def run(fn: Callable, args: dict | None = None, **kwargs: Any) -> Any:
     """Run an op via the default Runner.
 
-    Inside a workflow this goes through *that* runner instead, so a sub-op
-    reuses the warm workers the workflow was started with -- and so a panel's
-    progress bar and Cancel button reach it.
+    Inside a workflow this goes through the runner its caller used, so a
+    sub-op reuses the warm workers the workflow was started with -- and so a
+    panel's progress bar and Cancel button reach it, and a runner wrapped
+    around that one sees the sub-op at all.
     """
-    ambient = _current.get()
-    if ambient is not None:
-        return ambient.run(fn, args, **kwargs)
+    installed = _current.get()
+    if installed is not None:
+        return installed.run(fn, args, **kwargs)
     return default_runner().run(fn, args, **kwargs)

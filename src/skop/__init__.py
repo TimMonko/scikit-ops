@@ -47,8 +47,10 @@ from ._spec import (
     OpSpec,
     Out,
     OutputSpec,
+    Overlap,
     ParamsFor,
     ParamSpec,
+    PeakMemory,
     Role,
     Slot,
     TypeSpec,
@@ -81,11 +83,14 @@ __all__ = [
     "OpSpec",
     "Out",
     "OutputSpec",
+    "Overlap",
     "ParamSpec",
     "ParamsFor",
+    "PeakMemory",
     "Role",
     "Runner",
     "Slot",
+    "Tiler",
     "TypeSpec",
     "ambient",
     "cancel_requested",
@@ -103,6 +108,7 @@ _LAZY = {
     "ambient": "runner",
     "run": "runner",
     "discover": "discovery",
+    "Tiler": "_tiling",
 }
 
 

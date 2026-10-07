@@ -8,9 +8,10 @@ living in the op's declared environment.
 
 from __future__ import annotations
 
-import json
 import contextlib
 import contextvars
+import itertools
+import json
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,7 +21,9 @@ from typing import TYPE_CHECKING, Any, Union, get_args, get_origin
 import appose
 import numpy as np
 
-from . import _adapt, _codec, _progress, _spec
+from opspec.tiling import TilePlan
+
+from . import _adapt, _codec, _progress, _spec, _tiling
 from .host import CALL as _CALL
 from .host import INIT as _INIT  # noqa: F401  (kept for out-of-process hosts)
 from .host import init_script as _init_script_for
@@ -41,6 +44,9 @@ class _Event:
     message: str | None = None
     current: int | None = None
     maximum: int | None = None
+    #: (m, n) when a tiled run starts its tile m of n. The op's own progress
+    #: for that tile follows, as ordinary events.
+    tile: tuple[int, int] | None = None
 
 
 class _HostTask:
@@ -92,15 +98,22 @@ class _Ambient:
     Python call. So the runner is ambient, exactly as ``progress()`` is.
     """
 
-    def __init__(self, runner: Runner, task: _HostTask) -> None:
+    def __init__(
+        self, runner: Runner, task: _HostTask, tiler: _tiling.Tiler | None = None
+    ) -> None:
         self._runner = runner
         self._task = task
+        self._tiler = tiler
 
     def run(self, fn: Callable, args: dict | None = None, **kwargs: Any) -> Any:
         # A sub-op's progress is the workflow's progress: without this the
         # panel sits at "running" for the four minutes SAM takes.
         kwargs.setdefault("on_progress", self._task.relay)
         kwargs.setdefault("on_start", self._task.adopt)
+        # The tiling the workflow's caller chose applies to the ops it calls,
+        # unless the workflow chose for one itself.
+        if self._tiler is not None and not {"tiler", "memory"} & kwargs.keys():
+            kwargs["tiler"] = self._tiler
         return self._runner.run(fn, args, **kwargs)
 
 
@@ -250,7 +263,7 @@ class Runner:
     def environment_status(self, env_id: str) -> str:
         """Whether the built environment matches its definition.
 
-        One of ``"missing"``, ``"stale"`` or ``"up to date"``. Answered from
+        One of ``"ready"``, ``"stale"`` or ``"missing"``. Answered from
         the two files, without building anything, so it costs nothing to ask.
 
         Appose records the full text of the pixi.toml it built from, in
@@ -271,11 +284,7 @@ class Runner:
             built = json.loads(record.read_text()).get("content", "")
         except (OSError, ValueError):
             return "stale"
-        return (
-            "up to date"
-            if built.strip() == config.read_text().strip()
-            else "stale"
-        )
+        return "ready" if built.strip() == config.read_text().strip() else "stale"
 
     def ensure_environment(
         self,
@@ -301,7 +310,7 @@ class Runner:
         """
         status = self.environment_status(env_id)
         report(f"{env_id}: {status}")
-        if status == "up to date":
+        if status == "ready":
             return self.environment(env_id, variant)
 
         report(
@@ -397,6 +406,9 @@ class Runner:
         position: dict[str, int] | None = None,
         on_progress: Callable[[Any], None] | None = None,
         on_start: Callable[[Any], None] | None = None,
+        memory: int | str | None = None,
+        tiler: _tiling.Tiler | None = None,
+        out: Any = None,
         **kwargs: Any,
     ) -> Any:
         """Run an op in its environment and return its result.
@@ -422,16 +434,74 @@ class Runner:
             position: Current position along each axis, used only when a
                 supplied plan indexes down to a single plane.
             on_progress: Called with each Appose TaskEvent as it arrives.
-            on_start: Called with the Appose Task once it has been submitted.
-                This call blocks until the op finishes, so a caller wanting to
-                cancel one -- a GUI, typically -- needs a handle on it from
-                another thread. Waiting for the first progress event instead
-                would leave silent ops uncancellable.
+            on_start: Called with the Appose Task when it is submitted. This
+                can be used to get a reference to the running task, then the
+                reference can be used to monitor or cancel the task.
+            memory: A memory budget for the op, as bytes or a size such as
+                ``"1G"``. An op declaring tiling hints (``@op(tile=...,
+                peak_memory=...)``) whose input would need more is run tile by
+                tile, each within the budget; see ``skop._tiling``. Left out,
+                the budget is 85% of the memory available right now, cgroup
+                limits included (``skop._tiling.default_budget``); ``"off"``
+                never tiles. An op declaring no hints always runs whole. A
+                shortcut for ``tiler=Tiler(memory)``.
+            tiler: The caller's tiling choices -- budget, overlap, tile size
+                -- as a ``skop.Tiler``; it takes precedence over ``memory``.
+                ``Tiler.off()`` never tiles. For a workflow, it applies to
+                the ops the workflow runs.
+            out: Where an op's single array result is written, tiled or not:
+                an array that takes ``out[region] = values`` (numpy, zarr,
+                HDF5), or a function ``(shape, dtype) -> array`` that makes
+                one once the result's dtype is known. Returned in place of a
+                new array. Left out, a tiled result too big for memory goes
+                to a temporary ``.npy`` memmap.
         """
         spec = _spec.OpSpec.from_op(fn)
         call_args = dict(args or {})
         call_args.update(kwargs)
         _validate(spec, call_args)
+
+        if tiler is None:
+            tiler = _tiling.Tiler.off() if memory == "off" else _tiling.Tiler(memory)
+        plan = tiler.plan(spec, call_args)
+        if plan is not None and plan.calls > 1:
+            if axes or any(_adapts(p) for p in (plans or {}).values()):
+                raise NotImplementedError(
+                    f"Op {spec.name}: tiling and axis adaptation in one call "
+                    "are not supported yet; give one or the other"
+                )
+            # All the inputs in spec.tile are tiled the same way; one left out
+            # of the call -- an optional mask -- stays None.
+            inputs = {name: call_args.get(name) for name in spec.tile}
+            started = itertools.count(1)
+
+            def one_tile(pieces: dict[str, Any]) -> Any:
+                number = next(started)
+                if on_progress is not None:
+                    on_progress(
+                        _Event(
+                            f"Tile {number} of {plan.calls}",
+                            number - 1,
+                            plan.calls,
+                            tile=(number, plan.calls),
+                        )
+                    )
+                return self.run(
+                    fn,
+                    {**call_args, **pieces},
+                    tiler=_tiling.Tiler.off(),  # Already cut to fit.
+                    variant=variant,
+                    on_progress=on_progress,
+                    on_start=on_start,
+                )
+
+            # The whole result is in RAM, whatever device the op is on:
+            # a GPU op's budget says nothing about how much RAM is free.
+            room = (
+                _tiling.default_budget() if spec.peak_memory.device == "gpu" else None
+            )
+            return _tiling.run_tiles(one_tile, inputs, plan, out, room, spec.merge)
+
         call_args = _to_declared(spec, call_args)
 
         if spec.is_workflow:
@@ -439,7 +509,9 @@ class Runner:
             # runs here, and the ops it calls each cross the boundary
             # themselves. Axis adaptation is skipped for the same reason --
             # the sub-ops adapt their own arrays.
-            return self._run_here(fn, call_args, on_progress, on_start)
+            return _into(
+                out, self._run_here(fn, call_args, on_progress, on_start, tiler)
+            )
 
         adaptations = _adaptations(fn, call_args, axes, plans, position)
 
@@ -489,7 +561,7 @@ class Runner:
                 # the worker allocated for results.
                 _codec.release(out_refs, unlink=True)
 
-            return _unpack(spec, outputs, buffers)
+            return _into(out, _unpack(spec, outputs, buffers))
         finally:
             _codec.release(refs, unlink=True)
 
@@ -499,6 +571,7 @@ class Runner:
         call_args: dict,
         on_progress: Callable[[Any], None] | None,
         on_start: Callable[[Any], None] | None,
+        tiler: _tiling.Tiler | None = None,
     ) -> Any:
         """Call a workflow in this process, with this runner made ambient.
 
@@ -594,6 +667,41 @@ def _validate(spec: _spec.OpSpec, args: dict) -> None:
         raise TypeError(
             f"Op {spec.name} is missing required argument(s): {', '.join(missing)}"
         )
+
+
+def _adapts(plan: _adapt.AdaptationPlan) -> bool:
+    """Whether a plan changes anything: slices, iterates or reorders.
+
+    A front end hands over a plan for every input whose op declares axes,
+    including the many that come out "as is"; only the rest stand in the way
+    of tiling.
+    """
+    identity = tuple(range(len(plan.transpose)))
+    return bool(plan.iterate or plan.select) or tuple(plan.transpose) != identity
+
+
+def _into(out: Any, result: Any) -> Any:
+    """*result*, written into *out* when the caller gave one."""
+    if out is None:
+        return result
+    if isinstance(result, tuple):
+        raise TypeError(
+            f"out takes a single array, and this op returned {len(result)} values"
+        )
+    array = np.asarray(result)
+    target = _tiling.prepare_out(out, array.shape, array.dtype)
+    target[...] = array
+    return target
+
+
+def tile_plan(
+    spec: _spec.OpSpec, args: dict, memory: int | str | None = None
+) -> TilePlan | None:
+    """How ``Runner.run(..., memory=memory)`` would cut this call.
+
+    Kept for front ends that predate the Tiler: ``Tiler(memory).plan``.
+    """
+    return _tiling.Tiler(memory).plan(spec, args)
 
 
 def _to_declared(spec: _spec.OpSpec, args: dict) -> dict:

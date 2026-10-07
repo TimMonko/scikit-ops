@@ -57,6 +57,14 @@ class Runner(Protocol):
 
     ``run`` blocks and returns the op's result. A caller wanting to cancel
     takes the task through ``on_start``.
+
+    **Nested calls go through the runner the caller used.** An op that calls
+    other ops declares no environment of its own -- it is a *workflow* -- and
+    the ops it calls must run through the same runner rather than through a
+    fresh one. That is what keeps workers warm, keeps one progress bar and one
+    Cancel button covering the whole run, and lets a runner which wraps
+    another see what a workflow did. It applies to the outermost runner: the
+    first one installed is the one nested calls reach.
     """
 
     def run(

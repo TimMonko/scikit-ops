@@ -507,14 +507,22 @@ class Runner:
         through whichever ``Runner`` happens to be unwrapping them. Without
         that a wrapper around a Runner -- a recorder, a panel's bookkeeping --
         would never see the ops inside a workflow. See ``ambient``.
+
+        Its task stays too. That task is the one the caller was handed, so the
+        workflow's own ``progress()`` reports to it and its own
+        ``cancel_requested()`` sees a cancel aimed at it; a fresh task here
+        would be one nobody holds.
         """
-        task = _HostTask(on_progress)
-        if on_start is not None:
-            on_start(task)
-        reporting = _progress._bind(task)
+        installed = _current.get()
         token = None
-        if _current.get() is None:
+        if installed is not None:
+            task = installed._task
+        else:
+            task = _HostTask(on_progress)
+            if on_start is not None:
+                on_start(task)
             token = _current.set(_Ambient(self, task))
+        reporting = _progress._bind(task)
         try:
             return fn(**call_args)
         finally:

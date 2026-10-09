@@ -33,7 +33,7 @@ from . import _adapt, _spec
 
 # The script sent for every op call. Its last statement is an expression
 # yielding a dict, which Appose turns into the task's outputs.
-CALL = "skop_invoke(task, module, function, kwargs, plans)"
+CALL = "skop_invoke(task, module, function, kwargs, plans, origin)"
 
 # Installed into every op worker via the service init script. Names defined
 # here become worker exports, and so are in scope for every task.
@@ -147,6 +147,8 @@ def init_script(root: "Path | str", metadata: bool = False) -> str:
     else:
         template = METADATA_INIT_APPEND if metadata else INIT_APPEND
     return template.format(root=str(root))
+
+
 CONSTANTS = "skop_constants()"
 
 

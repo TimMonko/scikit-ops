@@ -207,3 +207,40 @@ def test_unadapted_arrays_are_untouched(runner):
     # Saying nothing about axes means the op sees exactly what was passed.
     image = np.ones((2, 3, 4), dtype=np.float32)
     assert runner.run(toy.scale, image=image, factor=2.0).scaled.shape == (2, 3, 4)
+
+
+# -- ops outside scikit-ops ------------------------------------------------
+
+WILDCAT = """
+import numpy as np
+from opspec.op import op
+
+@op(env="skimage")
+def plus_one(image: np.ndarray) -> np.ndarray:
+    return image + 1
+"""
+
+
+def _import_from(folder, name, source):
+    import importlib
+    import sys
+
+    (folder / f"{name}.py").write_text(source)
+    sys.path.insert(0, str(folder))
+    try:
+        return importlib.import_module(name)
+    finally:
+        sys.path.remove(str(folder))
+
+
+def test_a_module_s_origin_is_the_folder_it_imports_from(tmp_path):
+    import skop.ops.smooth  # noqa: F401  (imported, so it has an origin)
+    from skop.runner import _origin
+
+    package = tmp_path / "pkg"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    _import_from(package, "mod_in_pkg_test", "")  # a plain module
+    assert _origin("mod_in_pkg_test") == {"root": str(package.resolve())}
+    assert _origin("skop.ops.smooth")["root"].endswith("src")
+    assert _origin("no_such_module") is None

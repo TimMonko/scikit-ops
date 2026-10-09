@@ -11,6 +11,7 @@ and turn the return value back into Appose outputs.
 from __future__ import annotations
 
 import importlib
+import sys
 from enum import Enum
 from pathlib import Path
 from typing import Any, get_args, get_origin
@@ -24,6 +25,7 @@ def invoke(
     function: str,
     kwargs: dict,
     plans: list | None = None,
+    origin: dict | None = None,
 ) -> dict:
     """Run an op in this worker process, on behalf of a host.
 
@@ -35,13 +37,16 @@ def invoke(
         plans: Serialized ``AdaptationPlan``s, one per parameter needing one.
             Iteration runs here rather than on the host so that forty planes
             cost one task and one trip through shared memory, not forty.
+        origin: Where the host found the op's module, for an op that lives
+            outside any installed package: ``{"root": ...}``, the folder to
+            import it from.
 
     Returns:
         A dict of task outputs. Computer- and inplace-form ops return an
         empty dict, since their results land in buffers the host already
         owns.
     """
-    fn = getattr(importlib.import_module(module), function)
+    fn = getattr(_import(module, origin), function)
     spec = _spec.OpSpec.from_op(fn)
     adaptations = {
         plan["param"]: _adapt.AdaptationPlan.from_dict(plan) for plan in plans or []
@@ -64,6 +69,15 @@ def invoke(
         # Release our mappings of the host's shared memory. Per Appose's
         # rule, only the host process unlinks; we merely close our view.
         _codec.release(refs, unlink=False)
+
+
+def _import(module: str, origin: dict | None) -> Any:
+    """Import the op's module, from where the host found it if need be."""
+    root = (origin or {}).get("root")
+    if root and root not in sys.path:
+        # In front, so the worker finds the same copy the host did.
+        sys.path.insert(0, root)
+    return importlib.import_module(module)
 
 
 def _coerce(spec: _spec.OpSpec, args: dict) -> dict:

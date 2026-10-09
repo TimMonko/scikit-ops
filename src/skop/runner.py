@@ -12,6 +12,7 @@ import contextlib
 import contextvars
 import itertools
 import json
+import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -510,6 +511,7 @@ class Runner:
                     "function": spec.function,
                     "kwargs": encoded,
                     "plans": [plan.to_dict() for plan in adaptations.values()],
+                    "origin": _origin(spec.module),
                 },
                 queue="main" if spec.main_thread else None,
             )
@@ -738,6 +740,25 @@ def default_runner() -> Runner:
     if _default_runner is None:
         _default_runner = Runner()
     return _default_runner
+
+
+def _origin(module: str) -> dict | None:
+    """Where a worker can import *module* from, as the host found it.
+
+    ``{"root": folder}``, the folder to put on the path; None when the host
+    has no file for it, or the op is in a script run directly (``__main__``),
+    which a worker cannot import.
+    """
+    found = getattr(sys.modules.get(module), "__file__", None)
+    if found is None:
+        return None
+    if module == "__main__":
+        return None
+    path = Path(found).resolve()
+    # pkg/sub/mod.py is pkg.sub.mod: up one folder per dotted part, and one
+    # more for a package's __init__.py.
+    depth = module.count(".") + (path.name == "__init__.py")
+    return {"root": str(path.parents[depth])}
 
 
 def run(fn: Callable, args: dict | None = None, **kwargs: Any) -> Any:

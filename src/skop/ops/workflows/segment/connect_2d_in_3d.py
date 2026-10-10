@@ -44,11 +44,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Annotated, NamedTuple
 
-from skop import Axes, Choices, ParamsFor, op, progress, run
+from opspec.runtime import progress
+from skop import Axes, Choices, ParamsFor, op, run
 from skop.ops.labels import connect
 from skop.ops.normalize import percentile
-from skop.ops.segment.cellpose4 import cellpose4
 from skop.ops.segment.cellpose3 import cellpose3
+from skop.ops.segment.cellpose4 import cellpose4
 from skop.ops.segment.stardist2d import stardist2d_fluo
 from skop.types import ImageData, LabelsData
 

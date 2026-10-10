@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 import skop
+from opspec.runtime import progress
 from skop import Choices, ParamsFor, op
 from skop.ops.edges import scharr, sobel, unsharp_mask
 
@@ -29,7 +30,7 @@ def _apply(
     step: Annotated[Callable, Choices(sobel=sobel, scharr=scharr)] = sobel,
     step_args: Annotated[dict | None, ParamsFor("step", binds="image")] = None,
 ) -> np.ndarray:
-    skop.progress("Applying")
+    progress("Applying")
     return skop.run(step, image=image, **(step_args or {}))
 
 
@@ -115,7 +116,7 @@ def test_progress_from_the_workflow_and_from_its_sub_op_both_arrive(runner):
         on_progress=lambda event: seen.append(event.message),
     )
     # The workflow's own message, raised on the host through the same
-    # skop.progress() an op in a worker would call.
+    # progress() an op in a worker would call.
     assert "Applying" in seen
 
 

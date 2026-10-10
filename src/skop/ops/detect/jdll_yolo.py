@@ -20,8 +20,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated
 
+from opspec.runtime import progress
 from skop import boxes as _boxes
-from skop import op, progress
+from skop import op
 from skop.types import ImageData
 
 from .._util import to_rgb

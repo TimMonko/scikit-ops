@@ -5,7 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated
 
-from skop import Axes, cancel_requested, op, progress
+from opspec.runtime import cancel_requested, progress
+from skop import Axes, op
 from skop.types import ImageData
 
 from .._util import to_rgb

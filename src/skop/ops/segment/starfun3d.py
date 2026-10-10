@@ -17,7 +17,8 @@ from typing import Annotated, NamedTuple
 
 import numpy as np
 
-from skop import op, progress
+from opspec.runtime import progress
+from skop import op
 from skop.types import ImageData, LabelsData, PointsData
 
 _ZENODO = "https://zenodo.org/records/10518151/files/model_{name}.zip?download=1"

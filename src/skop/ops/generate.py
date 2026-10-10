@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from skop import op, progress
+from opspec.runtime import progress
+from skop import op
 from skop.types import ImageData
 
 

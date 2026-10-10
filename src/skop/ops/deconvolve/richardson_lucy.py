@@ -12,7 +12,8 @@ from typing import Annotated
 
 import numpy as np
 
-from skop import Axes, Overlap, PeakMemory, cancel_requested, op, progress
+from opspec.runtime import cancel_requested, progress
+from skop import Axes, Overlap, PeakMemory, op
 
 from ._edges import pad_and_mask
 

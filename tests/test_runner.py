@@ -286,3 +286,66 @@ def test_an_op_outside_scikit_ops_runs_in_an_environment(tmp_path):
     with skop.Runner() as runner:
         result = runner.run(module.plus_one, image=np.zeros(3))
     assert list(result) == [1, 1, 1]
+
+
+# -- opspec.runtime: progress, cancel and run, through this runner ------------
+
+FROM_OPSPEC = """
+import numpy as np
+from opspec.op import op
+from opspec.runtime import cancel_requested, progress, run
+
+@op(env="skimage")
+def counts(image: np.ndarray) -> np.ndarray:
+    for i in range(3):
+        progress(f"Step {i + 1} of 3", i, 3)
+    return image + int(cancel_requested())
+
+@op
+def two_steps(image: np.ndarray) -> np.ndarray:
+    progress("Calling counts")
+    return run(counts, image=image)
+
+@op
+def announce(image: np.ndarray) -> np.ndarray:
+    progress("On the host")
+    return image
+"""
+
+
+def _messages(events):
+    return [getattr(e, "message", None) for e in events if getattr(e, "message", None)]
+
+
+def test_an_op_on_the_host_reports_through_opspec_runtime(tmp_path):
+    module = _import_from(tmp_path, "opspec_runtime_host_test", FROM_OPSPEC)
+    events = []
+    with skop.Runner() as runner:
+        runner.run(module.announce, image=np.zeros(2), on_progress=events.append)
+    assert _messages(events) == ["On the host"]
+
+
+@pytest.mark.env("skimage")
+def test_an_op_in_a_worker_reports_through_opspec_runtime(tmp_path):
+    module = _import_from(tmp_path, "opspec_runtime_worker_test", FROM_OPSPEC)
+    events = []
+    with skop.Runner() as runner:
+        result = runner.run(module.counts, image=np.zeros(2), on_progress=events.append)
+    assert list(result) == [0, 0]
+    assert _messages(events)[-3:] == ["Step 1 of 3", "Step 2 of 3", "Step 3 of 3"]
+
+
+@pytest.mark.env("skimage")
+def test_a_workflow_s_run_goes_through_the_runner(tmp_path):
+    module = _import_from(tmp_path, "opspec_runtime_workflow_test", FROM_OPSPEC)
+    events, started = [], []
+    with skop.Runner() as runner:
+        runner.run(
+            module.two_steps,
+            image=np.zeros(2),
+            on_progress=events.append,
+            on_start=started.append,
+        )
+        # counts ran in its environment, so the runner started a worker.
+        assert any(key[0] == "skimage" for key in runner._services)
+    assert "Step 3 of 3" in _messages(events)

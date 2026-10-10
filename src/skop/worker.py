@@ -16,7 +16,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, get_args, get_origin
 
-from . import _adapt, _codec, _progress, _spec
+from opspec.runtime import bind_task, unbind_task
+
+from . import _adapt, _codec, _spec
 
 
 def invoke(
@@ -58,11 +60,11 @@ def invoke(
         args = _coerce(spec, _codec.decode(kwargs, refs))
         _check_args(spec, args)
 
-        token = _progress._bind(task)
+        token = bind_task(task)
         try:
             result = _adapt.execute(spec, fn, args, adaptations)
         finally:
-            _progress._unbind(token)
+            unbind_task(token)
 
         return _pack(spec, result, outbound)
     finally:

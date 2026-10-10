@@ -20,8 +20,9 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated
 
+from opspec.runtime import progress
 from skop import boxes as _boxes
-from skop import op, progress
+from skop import op
 from skop.assets import file_from_url
 from skop.types import ImageData
 

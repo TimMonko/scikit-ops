@@ -23,7 +23,8 @@ from typing import Annotated
 
 import numpy as np
 
-from skop import Axes, op, progress
+from opspec.runtime import progress
+from skop import Axes, op
 from skop.types import ImageData, LabelsData
 
 from .._util import to_gray

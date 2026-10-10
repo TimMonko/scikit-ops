@@ -23,7 +23,8 @@ from typing import Annotated, NamedTuple
 
 import numpy as np
 
-from skop import Choices, ParamsFor, op, progress, run
+from opspec.runtime import progress
+from skop import Choices, ParamsFor, op, run
 from skop.ops.deconvolve.richardson_lucy import richardson_lucy
 from skop.ops.deconvolve.richardson_lucy_cupy import richardson_lucy_cupy
 from skop.ops.kernels.gibson_lanni import gibson_lanni

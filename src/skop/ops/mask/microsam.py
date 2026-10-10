@@ -22,9 +22,10 @@ from enum import Enum
 
 import numpy as np
 
+from opspec.runtime import progress
 from skop import boxes as _boxes
 from skop import masks as _masks
-from skop import op, progress
+from skop import op
 from skop.types import BoxesData, ImageData
 
 from ._result import Masks

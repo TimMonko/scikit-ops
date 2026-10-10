@@ -14,7 +14,7 @@ import zipfile
 from pathlib import Path
 from urllib.request import urlopen
 
-from ._progress import progress
+from opspec.runtime import progress
 
 
 def cache_dir() -> Path:

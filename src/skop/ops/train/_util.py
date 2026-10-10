@@ -11,7 +11,7 @@ import logging
 import os
 import re
 
-from skop import progress
+from opspec.runtime import progress
 
 #: The line train_seg logs at the end of an epoch, in both versions:
 #: ``12, train_loss=0.4213, test_loss=0.5012, LR=0.000010, time 3.21s``

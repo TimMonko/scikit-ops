@@ -92,5 +92,7 @@ def test_unwrap_optional_leaves_real_unions_alone():
 
 def test_progress_outside_worker_is_a_noop():
     # Called directly, with nobody listening.
-    skop.progress("hello", 1, 2)
-    assert skop.cancel_requested() is False
+    from opspec.runtime import cancel_requested, progress
+
+    progress("hello", 1, 2)
+    assert cancel_requested() is False

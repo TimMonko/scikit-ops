@@ -25,9 +25,10 @@ from typing import TYPE_CHECKING, Any, Union, get_args, get_origin
 import appose
 import numpy as np
 
+from opspec.runtime import bind_runner, bind_task, unbind_runner, unbind_task
 from opspec.tiling import TilePlan
 
-from . import _adapt, _codec, _progress, _spec, _tiling
+from . import _adapt, _codec, _spec, _tiling
 from .host import CALL as _CALL
 from .host import INIT as _INIT  # noqa: F401  (kept for out-of-process hosts)
 from .host import init_script as _init_script_for
@@ -57,7 +58,7 @@ class _HostTask:
     """Stands in for an Appose task while a workflow runs on the host.
 
     A workflow has no worker and therefore no task, but everything watching an
-    op expects one: ``skop.progress()`` looks for something to update, and a
+    op expects one: ``opspec.runtime.progress()`` looks for something to update, and a
     GUI's Cancel button needs a handle to act on. This is that handle.
     """
 
@@ -582,13 +583,17 @@ class Runner:
         task = _HostTask(on_progress)
         if on_start is not None:
             on_start(task)
-        reporting = _progress._bind(task)
-        ambient = _current.set(_Ambient(self, task, tiler))
+        reporting = bind_task(task)
+        here = _Ambient(self, task, tiler)
+        ambient = _current.set(here)
+        # opspec.runtime.run goes through this runner too.
+        sub_ops = bind_runner(here)
         try:
             return fn(**call_args)
         finally:
+            unbind_runner(sub_ops)
             _current.reset(ambient)
-            _progress._unbind(reporting)
+            unbind_task(reporting)
 
     #: Run in a worker to hand GPU memory back. Torch frees tensors into its
     #: own cache, not to the driver; cupy does the same. TensorFlow keeps

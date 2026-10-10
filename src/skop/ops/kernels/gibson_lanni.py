@@ -25,7 +25,8 @@ from typing import Annotated
 
 import numpy as np
 
-from skop import op, progress
+from opspec.runtime import progress
+from skop import op
 
 from ._fluorophore import Fluorophore
 from ._recenter import recenter_psf_axial

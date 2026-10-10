@@ -37,8 +37,9 @@ from opspec.plan import (
     normalize_axes,
     plan,
 )
+from opspec.runtime import cancel_requested, progress
 
-from . import _progress, _spec
+from . import _spec
 
 __all__ = [
     "DISPOSITIONS",
@@ -115,14 +116,12 @@ def execute(
     gathered: list[list] = [[] for _ in spec.outputs]
 
     for step, index in enumerate(np.ndindex(*span)):
-        if _progress.cancel_requested():
+        if cancel_requested():
             raise RuntimeError(
                 f"Op {spec.name} was cancelled after {step} of {plan.calls} slices"
             )
         where = ", ".join(f"{label}={i}" for label, i in zip(labels, index))
-        _progress.progress(
-            f"Slice {step + 1} of {plan.calls} ({where})", step, plan.calls
-        )
+        progress(f"Slice {step + 1} of {plan.calls} ({where})", step, plan.calls)
         for name, stack in stacks.items():
             args[name] = stack[index]
         for slot, value in enumerate(_split(spec, fn(**args))):

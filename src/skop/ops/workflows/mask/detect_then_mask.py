@@ -24,7 +24,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Annotated, NamedTuple
 
-from skop import Choices, ParamsFor, op, progress, run
+from opspec.runtime import progress
+from skop import Choices, ParamsFor, op, run
 from skop.ops.detect.fastsam import fastsam
 from skop.ops.detect.object_aware_yolo import object_aware_yolo
 from skop.ops.mask.microsam import microsam_masks

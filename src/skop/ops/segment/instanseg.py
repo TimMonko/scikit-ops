@@ -16,7 +16,8 @@ from typing import Annotated, NamedTuple
 
 import numpy as np
 
-from skop import Axes, op, progress
+from opspec.runtime import progress
+from skop import Axes, op
 from skop.types import ImageData, LabelsData
 
 

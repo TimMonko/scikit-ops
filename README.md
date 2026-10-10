@@ -176,8 +176,9 @@ them into a minimal environment that has little more than numpy:
    in the body.
 
 Multiple outputs come from a `NamedTuple`: its field names become the names of
-the op's outputs. `skop.progress(...)` and `skop.cancel_requested()` report
-to whoever is running the op, and do nothing when it is called directly.
+the op's outputs. `progress(...)` and `cancel_requested()`, from
+`opspec.runtime`, report to whoever is running the op, and do nothing when it
+is called directly.
 
 ### Saying what an array is
 

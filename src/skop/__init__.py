@@ -26,7 +26,6 @@ if (_CHECKOUT_OPSPEC / "opspec").is_dir() and str(_CHECKOUT_OPSPEC) not in sys.p
     sys.path.insert(0, str(_CHECKOUT_OPSPEC))
 
 from ._adapt import ITERATE, PASS, SELECT, AdaptationPlan, plan
-from ._progress import cancel_requested, progress
 from ._spec import (
     BOOL,
     COMPUTER,
@@ -92,12 +91,10 @@ __all__ = [
     "Slot",
     "Tiler",
     "TypeSpec",
-    "cancel_requested",
     "discover",
     "is_op",
     "op",
     "plan",
-    "progress",
     "run",
     "type_spec",
 ]

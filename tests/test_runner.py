@@ -30,7 +30,7 @@ def test_op_runs_in_its_own_environment(runner):
 
     worker = runner.run(toy.probe)
     assert sys.executable not in worker
-    assert "skop-minimal" in worker
+    assert "scikit-ops--minimal" in worker
 
 
 def test_array_round_trip_and_multiple_outputs(runner):
@@ -244,3 +244,45 @@ def test_a_module_s_origin_is_the_folder_it_imports_from(tmp_path):
     assert _origin("mod_in_pkg_test") == {"root": str(package.resolve())}
     assert _origin("skop.ops.smooth")["root"].endswith("src")
     assert _origin("no_such_module") is None
+
+
+def test_an_environment_beside_the_op_comes_first(tmp_path):
+    (tmp_path / "envs" / "skimage").mkdir(parents=True)
+    (tmp_path / "envs" / "skimage" / "pixi.toml").write_text("[workspace]\n")
+    _import_from(tmp_path, "op_beside_envs_test", WILDCAT)
+    with skop.Runner() as runner:
+        mine = runner._env_for("skimage", "op_beside_envs_test")
+        ours = runner._env_for("skimage", "skop.ops.smooth")
+    assert mine.config == tmp_path.resolve() / "envs" / "skimage" / "pixi.toml"
+    # A plain folder: its name, a hash of where it is, and the ID.
+    assert mine.name.startswith(tmp_path.name + "-")
+    assert mine.name.endswith("--skimage")
+    assert mine.folder.name == mine.name
+    assert ours.name == "scikit-ops--skimage"
+
+
+def test_an_environment_is_named_after_its_package(tmp_path):
+    (tmp_path / "pyproject.toml").write_text('[project]\nname = "My_Ops"\n')
+    (tmp_path / "envs" / "skimage").mkdir(parents=True)
+    (tmp_path / "envs" / "skimage" / "pixi.toml").write_text("[workspace]\n")
+    _import_from(tmp_path, "op_in_a_package_test", WILDCAT)
+    with skop.Runner() as runner:
+        env = runner._env_for("skimage", "op_in_a_package_test")
+    assert env.name == "my-ops--skimage"
+
+
+def test_a_runner_says_which_environment_an_op_runs_in():
+    from skop.ops.smooth import gaussian
+
+    with skop.Runner() as runner:
+        env = runner.env_for(gaussian)
+    assert (env.id, env.name) == ("skimage", "scikit-ops--skimage")
+    assert env.config.name == "pixi.toml"
+
+
+@pytest.mark.env("skimage")
+def test_an_op_outside_scikit_ops_runs_in_an_environment(tmp_path):
+    module = _import_from(tmp_path, "wildcat_op_test", WILDCAT)
+    with skop.Runner() as runner:
+        result = runner.run(module.plus_one, image=np.zeros(3))
+    assert list(result) == [1, 1, 1]

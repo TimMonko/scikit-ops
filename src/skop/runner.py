@@ -10,8 +10,11 @@ from __future__ import annotations
 
 import contextlib
 import contextvars
+import functools
+import hashlib
 import itertools
 import json
+import re
 import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -221,15 +224,10 @@ class Runner:
     def env_dir(self, env_id: str) -> Path:
         """Where Appose keeps the built environment for *env_id*.
 
-        Matching ``environment``'s ``appose.pixi(config).name(f"skop-{env_id}")``.
-        The directory need not exist; that is what "missing" means below.
+        ``<package>--<env_id>``, as ``environment`` builds it. The
+        directory need not exist; that is what "missing" means below.
         """
-        try:
-            from appose.util.filepath import appose_envs_dir
-        except ImportError:  # older appose kept it next door
-            from appose.util.environment import appose_envs_dir
-
-        return Path(appose_envs_dir()) / f"skop-{env_id}"
+        return self._own_env(env_id).folder
 
     def environment_status(self, env_id: str) -> str:
         """Whether the built environment matches its definition.
@@ -310,12 +308,46 @@ class Runner:
         directory, so several ops declaring the same env ID land on the same
         installation, and editing the pixi.toml triggers a rebuild.
         """
-        key = (env_id, variant)
+        return self._build(self._own_env(env_id), variant)
+
+    def env_for(self, op: Callable) -> Env:
+        """The environment *op* runs in: the file that defines it, and where
+        it is built. Nothing is built by asking.
+        """
+        spec = _spec.OpSpec.from_op(op)
+        if spec.env is None:
+            raise ValueError(f"Op {spec.name} has no environment: it runs here")
+        return self._env_for(spec.env, spec.module)
+
+    def _env_for(self, env_id: str, module: str) -> Env:
+        """The environment an op in *module* means by *env_id*.
+
+        An ``envs/<env_id>/pixi.toml`` beside the op's own files comes first:
+        in its folder, or any folder above it. So a collection of ops outside
+        scikit-ops can bring its own environments, even ones named like
+        scikit-ops' -- each is built, and run, as itself. Failing that, this
+        runner's ``envs_dir``.
+        """
+        found = getattr(sys.modules.get(module), "__file__", None)
+        if found is not None:
+            for folder in Path(found).resolve().parents:
+                config = folder / "envs" / env_id / "pixi.toml"
+                if config.exists():
+                    return Env(env_id, config, _package_name(module, folder))
+        return self._own_env(env_id)
+
+    def _own_env(self, env_id: str) -> Env:
+        """One of this runner's own environments, from its ``envs_dir``."""
+        config = self.env_config(env_id)
+        return Env(env_id, config, _package_name(__name__, self.envs_dir.parent))
+
+    def _build(self, env: Env, variant: str | None = None) -> Any:
+        """Build (or reuse) one environment."""
+        key = (env.config, variant)
         if key in self._envs:
             return self._envs[key]
 
-        config = self.env_config(env_id)
-        builder = appose.pixi(config).name(f"skop-{env_id}")
+        builder = appose.pixi(env.config).name(env.name)
         for progress_subscriber in self._build_progress:
             builder = builder.subscribe_progress(progress_subscriber)
         for output_subscriber in self._build_output:
@@ -324,23 +356,23 @@ class Runner:
             builder = builder.subscribe_error(error_subscriber)
         if self.debug:
             builder = builder.log_debug()
-        env = builder.build()
+        built = builder.build()
 
         if variant is not None:
             # Named pixi sub-environments (features) require appose >= 0.12.
-            if not hasattr(env, "activate"):
+            if not hasattr(built, "activate"):
                 raise RuntimeError(
                     f"Environment variant '{variant}' requires appose >= 0.12; "
                     f"installed appose has no Environment.activate()."
                 )
-            env = env.activate(variant)
+            built = built.activate(variant)
 
-        self._envs[key] = env
-        return env
+        self._envs[key] = built
+        return built
 
-    def _init_script(self, env_id: str) -> str:
+    def _init_script(self, env: Env) -> str:
         script = _init_script_for(self.root)
-        extra = self.envs_dir / env_id / "init.py"
+        extra = env.config.parent / "init.py"
         if extra.exists():
             script = f"{script}\n{extra.read_text(encoding='utf-8')}"
         return script
@@ -351,13 +383,14 @@ class Runner:
         Ops sharing an environment share a worker, unless one of them asks
         to be exclusive.
         """
-        key = (spec.env, variant, spec.name if spec.exclusive else None)
+        env = self._env_for(spec.env, spec.module)
+        key = (spec.env, env.config, variant, spec.name if spec.exclusive else None)
         service = self._services.get(key)
         if service is not None:
             return service
 
-        env = self.environment(spec.env, variant)
-        service = env.python().init(self._init_script(spec.env))
+        built = self._build(env, variant)
+        service = built.python().init(self._init_script(env))
         if self.debug:
             service.debug(lambda line: print(f"[{spec.env}] {line}"))
         service.start()
@@ -740,6 +773,82 @@ def default_runner() -> Runner:
     if _default_runner is None:
         _default_runner = Runner()
     return _default_runner
+
+
+@dataclass(frozen=True)
+class Env:
+    """An environment an op asked for: its ID, and the file that defines it.
+
+    ``Runner.env_for(op)`` gives one; ``name`` and ``folder`` say what it is
+    built as, and where.
+    """
+
+    id: str
+    config: Path
+    #: Whose environment it is: the op's package, e.g. ``tnia-ops``.
+    package: str
+
+    @property
+    def name(self) -> str:
+        """What Appose builds it as: ``<package>--<id>``.
+
+        ``scikit-ops--decon`` and ``tnia-ops--decon`` are two environments,
+        though both are ``decon``: two collections' authors need not know of
+        each other for their environments to stay apart.
+        """
+        return f"{self.package}--{self.id}"
+
+    @property
+    def folder(self) -> Path:
+        """Where Appose builds it. It need not exist yet."""
+        try:
+            from appose.util.filepath import appose_envs_dir
+        except ImportError:  # older appose kept it next door
+            from appose.util.environment import appose_envs_dir
+
+        return Path(appose_envs_dir()) / self.name
+
+
+def _package_name(module: str, root: Path) -> str:
+    """Whose environments these are, for naming them: a package's name.
+
+    From the ``pyproject.toml`` beside ``envs/``, for a checkout; else from
+    the installed distribution *module* belongs to; else, for a plain folder,
+    its name and a short hash of where it is.
+    """
+    project = root / "pyproject.toml"
+    if project.exists():
+        found = _project_name(project.read_text(encoding="utf-8"))
+        if found:
+            return _normalized(found)
+    for name in _distributions().get(module.split(".")[0], []):
+        return _normalized(name)
+    where = hashlib.sha1(str(root.resolve()).encode()).hexdigest()[:6]
+    return f"{root.name}-{where}"
+
+
+def _project_name(text: str) -> str | None:
+    """``[project] name`` from a pyproject.toml's text."""
+    try:
+        import tomllib
+    except ImportError:  # Python 3.10
+        section = text.split("[project]", 1)[-1]
+        found = re.search(r'^name\s*=\s*"([^"]+)"', section, re.MULTILINE)
+        return found.group(1) if found else None
+    return tomllib.loads(text).get("project", {}).get("name")
+
+
+def _normalized(name: str) -> str:
+    """A package name as PyPI compares them: tnia_ops and Tnia.Ops are tnia-ops."""
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+@functools.cache
+def _distributions() -> dict:
+    """Top-level import name to distribution names. Slow to work out, once."""
+    import importlib.metadata
+
+    return importlib.metadata.packages_distributions()
 
 
 def _origin(module: str) -> dict | None:

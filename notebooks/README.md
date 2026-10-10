@@ -20,7 +20,7 @@ project exists to avoid.
 else entirely — appose keeps them all together, outside any checkout:
 
 ```
-~/.local/share/appose/skop-<env-id>
+~/.local/share/appose/scikit-ops--<env-id>
 ```
 
 which is `C:\Users\<you>\.local\share\appose\` on Windows too; there is no

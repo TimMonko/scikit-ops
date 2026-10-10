@@ -33,8 +33,9 @@ test_images/              gitignored -- large TIFFs, not in the repo
   `envs/<id>/pixi.toml`. Holds torch, cupy, an old numpy. Never a host
   dependency; adding one rebuilds the monolith this design exists to avoid.
 
-Built op environments live in `~/.local/share/appose/skop-<env-id>/`, **not**
-in `envs/` — that directory holds the recipe only.
+Built op environments live in `~/.local/share/appose/<package>--<env-id>/`
+(`scikit-ops--skimage`), **not** in `envs/` — that directory holds the recipe
+only. Named after the package, so two collections' `skimage` stay apart.
 
 ## Facts worth not rediscovering
 

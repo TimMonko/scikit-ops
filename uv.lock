@@ -26,12 +26,6 @@ resolution-markers = [
     "python_full_version < '3.11' and sys_platform != 'darwin'",
 ]
 
-[manifest]
-members = [
-    "opspec",
-    "scikit-ops",
-]
-
 [[package]]
 name = "annotated-doc"
 version = "0.0.5"
@@ -2591,18 +2585,29 @@ wheels = [
 ]
 
 [[package]]
-name = "opspec"
+name = "ophelper"
 version = "0.1.0.dev0"
-source = { editable = "opspec" }
-
-[package.dev-dependencies]
-dev = [
+source = { editable = "ophelper" }
+dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "pytest" },
-    { name = "ruff" },
+    { name = "opspec" },
 ]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy" },
+    { name = "opspec", editable = "opspec" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+
+[[package]]
+name = "opspec"
+version = "0.1.0.dev0"
+source = { editable = "opspec" }
 
 [package.metadata]
 
@@ -4182,6 +4187,7 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "ophelper" },
     { name = "opspec" },
     { name = "psutil" },
 ]
@@ -4214,6 +4220,7 @@ examples = [
 requires-dist = [
     { name = "appose", specifier = ">=0.12" },
     { name = "numpy" },
+    { name = "ophelper", editable = "ophelper" },
     { name = "opspec", editable = "opspec" },
     { name = "psutil" },
 ]

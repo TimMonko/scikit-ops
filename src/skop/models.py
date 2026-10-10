@@ -16,7 +16,7 @@ Built-in models are answered from a name instead, so that a caller with a
 mixed list -- some built-ins, some files of its own -- can ask the same
 question of every entry.
 
-Standard library only, like ``skop.boxes`` and ``skop.masks``, so the host, a
+Standard library only, like ``ophelper.boxes`` and ``ophelper.masks``, so the host, a
 worker and a front end can all import it.
 """
 

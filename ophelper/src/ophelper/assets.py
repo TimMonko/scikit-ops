@@ -18,16 +18,16 @@ from opspec.runtime import progress
 
 
 def cache_dir() -> Path:
-    """Where skop keeps downloaded assets.
+    """Where downloaded assets are kept: ``~/.cache/ophelper``.
 
-    Honors ``OPKIT_CACHE_DIR``, then ``XDG_CACHE_HOME``, then ``~/.cache``.
+    Honors ``OPHELPER_CACHE_DIR``, then ``XDG_CACHE_HOME``, then ``~/.cache``.
     """
-    override = os.environ.get("OPKIT_CACHE_DIR")
+    override = os.environ.get("OPHELPER_CACHE_DIR")
     if override:
         return Path(override)
     xdg = os.environ.get("XDG_CACHE_HOME")
     base = Path(xdg) if xdg else Path.home() / ".cache"
-    return base / "skop"
+    return base / "ophelper"
 
 
 def unzip_from_url(url: str, name: str, marker: str | None = None) -> Path:

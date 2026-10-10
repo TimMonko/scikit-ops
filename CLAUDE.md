@@ -15,6 +15,7 @@ built, and graduates into a numbered design doc when it lands.
 src/skop/                 op-independent machinery
 src/skop/ops/<ns>[.py|/]  ops, one namespace per file or package
 opspec/                   the spec layer, its own package: @op, OpSpec, roles, plans
+ophelper/                 helpers for writing ops, its own package: boxes, masks, assets
 envs/<env-id>/pixi.toml   environment definitions, shared between ops
 pixi/examples/            the host for notebooks and interactive tests
 notebooks/                narrative examples, outputs committed

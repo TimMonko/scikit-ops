@@ -29,11 +29,11 @@ from __future__ import annotations
 
 import numpy as np
 
+import ophelper.boxes
+import ophelper.masks
+from ophelper.assets import file_from_url
 from opspec.runtime import progress
-from skop import boxes as _boxes
-from skop import masks as _masks
 from skop import op
-from skop.assets import file_from_url
 from skop.types import BoxesData, ImageData
 
 from .._util import to_rgb
@@ -56,7 +56,7 @@ def mobilesam_masks(
         image: Image to segment. 2-D or RGB; anything else is stretched to
             8-bit RGB first, which is what the model was trained on.
         boxes: (N, 4) as [min_y, min_x, max_y, max_x], from a detector op, a
-            Shapes layer, or ``skop.boxes.from_labels``.
+            Shapes layer, or ``ophelper.boxes.from_labels``.
         batch_size: How many boxes to decode at once. The image is encoded
             once regardless; this only trades GPU memory against the number
             of decoder calls.
@@ -64,7 +64,7 @@ def mobilesam_masks(
     Returns:
         masks: (N, Y, X) uint8, one object per plane. These may overlap, which
             is why they are not a label image; project them with
-            ``skop.masks``.
+            ``ophelper.masks``.
         boxes: the prompts that produced them.
 
     Masks come back in prompt order, not sorted -- ``masks[i]`` answers
@@ -83,9 +83,9 @@ def mobilesam_masks(
         sam_model_registry,
     )
 
-    prompts = _boxes.as_boxes(boxes)
+    prompts = ophelper.boxes.as_boxes(boxes)
     if len(prompts) == 0:
-        return Masks(_masks.empty(image.shape[:2]), _boxes.EMPTY.copy())
+        return Masks(ophelper.masks.empty(image.shape[:2]), ophelper.boxes.EMPTY.copy())
 
     if torch.cuda.is_available():
         device = "cuda"
@@ -121,7 +121,7 @@ def mobilesam_masks(
     # SamPredictor's transform resizes prompts alongside the image it just
     # encoded, and it reads them as xyxy -- the one conversion this op needs.
     scaled = predictor.transform.apply_boxes(
-        _boxes.to_xyxy(prompts), predictor.original_size
+        ophelper.boxes.to_xyxy(prompts), predictor.original_size
     )
     scaled = torch.as_tensor(scaled, dtype=torch.float32, device=device)
 
@@ -172,5 +172,5 @@ def mobilesam_masks(
     kept = stacked.any(axis=(1, 2))
     progress(f"Segmented {int(kept.sum())} of {len(prompts)} objects")
     if not kept.any():
-        return Masks(_masks.empty(image.shape[:2]), _boxes.EMPTY.copy())
+        return Masks(ophelper.masks.empty(image.shape[:2]), ophelper.boxes.EMPTY.copy())
     return Masks(np.ascontiguousarray(stacked[kept]), prompts[kept])

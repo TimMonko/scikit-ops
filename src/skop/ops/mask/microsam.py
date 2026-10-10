@@ -22,9 +22,9 @@ from enum import Enum
 
 import numpy as np
 
+import ophelper.boxes
+import ophelper.masks
 from opspec.runtime import progress
-from skop import boxes as _boxes
-from skop import masks as _masks
 from skop import op
 from skop.types import BoxesData, ImageData
 
@@ -59,13 +59,13 @@ def microsam_masks(
             itself, by min and max -- so a single hot pixel costs contrast
             everywhere else, and clipping such an image first is worth it.
         boxes: (N, 4) as [min_y, min_x, max_y, max_x], from a detector op, a
-            Shapes layer, or ``skop.boxes.from_labels``.
+            Shapes layer, or ``ophelper.boxes.from_labels``.
         model: Which finetuned checkpoint to prompt.
 
     Returns:
         masks: (N, Y, X) uint8, one object per plane. These may overlap, which
             is why they are not a label image; project them with
-            ``skop.masks``.
+            ``ophelper.masks``.
         boxes: the prompts that produced them.
 
     Masks come back in prompt order, not sorted -- ``masks[i]`` answers
@@ -78,9 +78,9 @@ def microsam_masks(
     # Checked before the imports: a detector that found nothing is an ordinary
     # workflow outcome, and there is no reason to load a 375 MB model to
     # answer no prompts.
-    prompts = _boxes.as_boxes(boxes)
+    prompts = ophelper.boxes.as_boxes(boxes)
     if len(prompts) == 0:
-        return Masks(_masks.empty(image.shape[:2]), _boxes.EMPTY.copy())
+        return Masks(ophelper.masks.empty(image.shape[:2]), ophelper.boxes.EMPTY.copy())
 
     from micro_sam.prompt_based_segmentation import segment_from_box
     from micro_sam.util import get_sam_model, precompute_image_embeddings
@@ -110,5 +110,5 @@ def microsam_masks(
 
     progress(f"Segmented {len(found)} of {len(prompts)} objects")
     if not found:
-        return Masks(_masks.empty(image.shape[:2]), _boxes.EMPTY.copy())
+        return Masks(ophelper.masks.empty(image.shape[:2]), ophelper.boxes.EMPTY.copy())
     return Masks(np.stack(found), prompts[kept])

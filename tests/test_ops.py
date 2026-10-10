@@ -236,7 +236,7 @@ def test_mask_detector_returns_nothing_without_loading_a_model():
     # from loading 375 MB of weights to answer no prompts.
     import numpy as np
 
-    from skop import boxes, masks
+    from ophelper import boxes, masks
     from skop.ops.mask import microsam_masks
 
     result = microsam_masks(np.zeros((8, 9), dtype=np.uint8), boxes.EMPTY)

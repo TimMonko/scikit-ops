@@ -16,7 +16,7 @@ The functions here accept ``bool`` and cast, since that is what SAM hands
 back and the cast has to happen somewhere.
 
 Nothing displays a stack directly, so this module holds the projections onto
-things that do -- and they are utilities rather than ops, like ``skop.boxes``,
+things that do -- and they are utilities rather than ops, like ``ophelper.boxes``,
 because making them ops would buy a shared-memory round trip and a worker
 process to transpose an array. numpy and the standard library only, so a
 worker, the host and a front end can all import it freely.

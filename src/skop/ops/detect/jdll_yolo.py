@@ -20,8 +20,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated
 
+import ophelper.boxes
 from opspec.runtime import progress
-from skop import boxes as _boxes
 from skop import op
 from skop.types import ImageData
 
@@ -99,7 +99,7 @@ def jdll_yolo(
     results = model(x.contiguous(), conf=conf, iou=iou, device=device, verbose=False)
 
     if not results or results[0].boxes is None or len(results[0].boxes) == 0:
-        return Boxes(_boxes.EMPTY.copy())
+        return Boxes(ophelper.boxes.EMPTY.copy())
 
     found = results[0].boxes
     progress(f"Found {len(found)} objects")
@@ -108,4 +108,4 @@ def jdll_yolo(
     xyxy = found.xyxy.cpu().numpy()
     xyxy[:, [0, 2]] = np.clip((xyxy[:, [0, 2]] - left) / scale, 0, width)
     xyxy[:, [1, 3]] = np.clip((xyxy[:, [1, 3]] - top) / scale, 0, height)
-    return Boxes(_boxes.from_xyxy(xyxy))
+    return Boxes(ophelper.boxes.from_xyxy(xyxy))

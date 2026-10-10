@@ -31,7 +31,7 @@ import numpy as np
 from skimage.data import coins
 
 import skop
-from skop import boxes
+from ophelper import boxes
 from skop.ops.detect import fastsam, object_aware_yolo
 
 # Lower to find more, and more spuriously. Raise if the boxes look like

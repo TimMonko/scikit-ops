@@ -566,16 +566,15 @@ TILED = 1024**2 * 0.001 / 1.5
 
 @pytest.fixture(scope="module")
 def yolo_weights():
-    from skop.assets import file_from_url
+    from ophelper.assets import file_from_url
 
     return file_from_url(YOLO26N, "yolo/yolo26n.pt")
 
 
 @pytest.fixture(scope="module")
 def bus():
+    from ophelper.assets import file_from_url
     from skimage import io
-
-    from skop.assets import file_from_url
 
     return io.imread(file_from_url(BUS, "yolo/bus.jpg"))
 
@@ -660,9 +659,8 @@ def test_yolo_batch_size_does_not_change_the_answer(
 def check_masks(result, image, prompts) -> None:
     """Assertions every mask detector's output has to satisfy."""
     import numpy as np
-
-    from skop import boxes as skop_boxes
-    from skop import masks as skop_masks
+    import ophelper.boxes
+    import ophelper.masks
 
     assert len(result.masks) == len(prompts)
     assert result.masks.shape[1:] == image.shape
@@ -685,10 +683,10 @@ def check_masks(result, image, prompts) -> None:
 
     # The whole reason these are not a label image: the projection is lossy,
     # and going through it is what a front end will do.
-    labels = skop_masks.to_labels_2d(result.masks)
+    labels = ophelper.masks.to_labels_2d(result.masks)
     assert labels.shape == image.shape
     assert len(np.unique(labels)) == len(prompts) + 1  # the discs, plus 0
-    assert skop_boxes.from_labels(labels).shape == (len(prompts), 4)
+    assert ophelper.boxes.from_labels(labels).shape == (len(prompts), 4)
 
 
 def coin_prompts() -> np.ndarray:

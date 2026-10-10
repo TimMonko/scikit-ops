@@ -15,7 +15,7 @@ order of the image they came from -- and matching numpy indexing, napari's
 axis order, and micro_sam's box prompts. A detector op converts on the way
 out, a front end on the way in, and nothing in between converts at all.
 
-This module is numpy and the standard library only, like ``skop.assets``, so
+This module is numpy and the standard library only, like ``ophelper.assets``, so
 that ops can import it inside their own environments as freely as the host
 does.
 """

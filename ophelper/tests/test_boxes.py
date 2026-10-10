@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from skop import boxes
+from ophelper import boxes
 
 
 def test_from_xyxy_transposes():

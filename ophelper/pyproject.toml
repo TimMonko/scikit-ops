@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ophelper"
+version = "0.1.0.dev0"
+description = "Helpers for writing image-processing ops: boxes, masks, model downloads."
+license = "BSD-2-Clause"
+authors = [{name = "scikit-ops developers"}]
+readme = "README.md"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    # progress, for downloads. A git URL: opspec is not on PyPI yet.
+    "opspec @ git+https://github.com/apposed/scikit-ops#subdirectory=opspec",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.hatch.metadata]
+# The opspec git URL above, until opspec is on PyPI.
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ophelper"]
+
+[tool.uv.sources]
+opspec = { path = "../opspec", editable = true }

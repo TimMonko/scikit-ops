@@ -96,8 +96,7 @@ def instanseg(
     import os
 
     import torch
-
-    from skop.assets import cache_dir
+    from ophelper.assets import cache_dir
 
     # InstanSeg downloads into its own package folder unless told otherwise.
     os.environ["INSTANSEG_BIOIMAGEIO_PATH"] = str(cache_dir() / "instanseg")

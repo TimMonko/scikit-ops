@@ -15,15 +15,17 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# skop's spec layer is opspec, which a checkout keeps beside src/ rather than
-# in it: <checkout>/opspec/src. A worker, the metadata service and Fiji all
-# reach skop by putting src/ on sys.path, so put opspec's directory there too,
-# and first, for the reason src/ goes first -- a checkout shadows the copy an
-# environment installs. An installed skop has no such directory; there opspec
-# is an ordinary dependency.
-_CHECKOUT_OPSPEC = Path(__file__).resolve().parents[2] / "opspec" / "src"
-if (_CHECKOUT_OPSPEC / "opspec").is_dir() and str(_CHECKOUT_OPSPEC) not in sys.path:
-    sys.path.insert(0, str(_CHECKOUT_OPSPEC))
+# skop's spec layer is opspec, and its helpers ophelper, which a checkout keeps
+# beside src/ rather than in it: <checkout>/opspec/src, <checkout>/ophelper/src.
+# A worker, the metadata service and Fiji all reach skop by putting src/ on
+# sys.path, so put their directories there too, and first, for the reason src/
+# goes first -- a checkout shadows the copy an environment installs. An
+# installed skop has no such directories; there they are ordinary dependencies.
+for _package in ("opspec", "ophelper"):
+    _checkout = Path(__file__).resolve().parents[2] / _package / "src"
+    if (_checkout / _package).is_dir() and str(_checkout) not in sys.path:
+        sys.path.insert(0, str(_checkout))
+
 
 from ._adapt import ITERATE, PASS, SELECT, AdaptationPlan, plan
 from ._spec import (

@@ -9,7 +9,7 @@ which ``skop.ops.workflows.mask`` does.
 
 They return masks rather than labels because SAM-family masks overlap -- a
 cell and the debris on it, a coin behind a coin -- and a label image cannot
-say so. ``skop.masks`` holds the projections onto something a viewer shows.
+say so. ``ophelper.masks`` holds the projections onto something a viewer shows.
 
 Every op here shares a signature and returns ``Masks``, so they are
 substitutable. One op per environment, since ``@op(env=...)`` is fixed per

@@ -41,6 +41,8 @@ dependencies = [
     # is not on PyPI. PyPI refuses packages with URL dependencies, so this
     # becomes "opspec>=..." when either one is published.
     "opspec @ git+https://github.com/apposed/scikit-ops#subdirectory=opspec",
+    # Helpers for writing ops (boxes, masks, downloads), from ./ophelper.
+    "ophelper @ git+https://github.com/apposed/scikit-ops#subdirectory=ophelper",
 ]
 
 [dependency-groups]
@@ -88,12 +90,12 @@ examples = [
 default-groups = ["dev", "examples"]
 
 # opspec lives in ./opspec. In development uv installs that checkout,
-# editable, rather than the git URL above.
-[tool.uv.workspace]
-members = ["opspec"]
-
+# editable, rather than the git URL above. A path, not a uv workspace: pixi
+# cannot follow `workspace = true` when scikit-ops is itself installed from a
+# path, as the pixi/ environments and other projects' do.
 [tool.uv.sources]
-opspec = { workspace = true }
+opspec = { path = "opspec", editable = true }
+ophelper = { path = "ophelper", editable = true }
 
 [project.urls]
 homepage = "https://github.com/apposed/scikit-ops"
@@ -130,13 +132,13 @@ extend-exclude = ["src/skop/ops/segment/unseg/_algorithm.py"]
 exclude = ["*.md"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["skop", "opspec"]
+known-first-party = ["skop", "opspec", "ophelper"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "opspec/tests"]
+testpaths = ["tests", "opspec/tests", "ophelper/tests"]
 addopts = "--strict-markers"
 markers = [
     "env(env_id): needs op environment <env_id>; skipped unless it is already built or --build-envs is passed",

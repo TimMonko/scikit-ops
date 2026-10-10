@@ -72,7 +72,7 @@ def segment_nuclei(
     from csbdeep.utils import normalize as normalize_percentile
     from stardist.models import StarDist3D
 
-    from skop import assets
+    from ophelper import assets
 
     model_dir = assets.unzip_from_url(
         _ZENODO.format(name=model.value),

@@ -51,14 +51,14 @@ from ._spec import Role
 
 ImageData = ImageOf[np.ndarray]
 LabelsData = LabelsOf[np.ndarray]
-#: See ``skop.masks`` for the projections a front end shows these through.
+#: See ``ophelper.masks`` for the projections a front end shows these through.
 MasksData = MasksOf[np.ndarray]
 PointsData = PointsOf[np.ndarray]
 VectorsData = VectorsOf[np.ndarray]
 TracksData = TracksOf[np.ndarray]
 
 #: Axis-aligned bounding boxes, as (N, 4): [min_y, min_x, max_y, max_x].
-#: See ``skop.boxes`` for the converters between this and everyone else's order.
+#: See ``ophelper.boxes`` for the converters between this and everyone else's order.
 BoxesData = BoxesOf[np.ndarray]
 
 __all__ = [

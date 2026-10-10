@@ -20,10 +20,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import ophelper.boxes
+from ophelper.assets import file_from_url
 from opspec.runtime import progress
-from skop import boxes as _boxes
 from skop import op
-from skop.assets import file_from_url
 from skop.types import ImageData
 
 from .._util import to_rgb
@@ -102,9 +102,9 @@ def object_aware_yolo(
     # Its postprocess returns an empty list, not an empty result, when the
     # model finds nothing -- and prints "No object detected." on the way.
     if not results or results[0].boxes is None:
-        return Boxes(_boxes.EMPTY.copy())
+        return Boxes(ophelper.boxes.EMPTY.copy())
 
     found = results[0].boxes
     progress(f"Found {len(found)} objects")
     # found.conf holds a confidence per box. Not returned -- see _result.py.
-    return Boxes(_boxes.from_xyxy(found.xyxy.cpu().numpy()))
+    return Boxes(ophelper.boxes.from_xyxy(found.xyxy.cpu().numpy()))

@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from skop import masks
+from ophelper import masks
 
 
 def _two_overlapping():

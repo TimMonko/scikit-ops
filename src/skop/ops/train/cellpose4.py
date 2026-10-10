@@ -17,8 +17,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from opspec.op import op
 from opspec.runtime import progress
-from skop import op
 from skop.ops.segment.cellpose4 import PretrainedModel
 
 from .._util import channel_axis, to_gray

@@ -17,9 +17,9 @@ from typing import Annotated, NamedTuple
 
 import numpy as np
 
+from opspec.op import op
 from opspec.runtime import progress
-from skop import op
-from skop.types import ImageData, LabelsData, PointsData
+from opspec.types import ImageOf, LabelsOf, PointsOf
 
 _ZENODO = "https://zenodo.org/records/10518151/files/model_{name}.zip?download=1"
 
@@ -38,13 +38,13 @@ class Model(Enum):
 
 
 class Nuclei(NamedTuple):
-    labels: LabelsData
-    points: PointsData
+    labels: LabelsOf[np.ndarray]
+    points: PointsOf[np.ndarray]
 
 
 @op(env="stardist-tf")
 def segment_nuclei(
-    image: ImageData,
+    image: ImageOf[np.ndarray],
     model: Model = Model.confocal,
     prob_thresh: Annotated[
         float | None,

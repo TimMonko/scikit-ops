@@ -15,9 +15,9 @@ from typing import Annotated
 
 import numpy as np
 
+from opspec.op import op
 from opspec.runtime import progress
-from skop import op
-from skop.types import ImageData
+from opspec.types import ImageOf
 
 
 def _take_only_what_is_needed(tf) -> None:
@@ -339,7 +339,7 @@ def receptive_field_stardist2d(
     img_size: Annotated[
         int, {"widget_type": "SpinBox", "min": 64, "max": 4096, "step": 64}
     ] = 512,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """The impulse response of a StarDist 2D network, as an image.
 
     Args:

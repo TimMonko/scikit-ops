@@ -44,14 +44,16 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Annotated, NamedTuple
 
-from opspec.runtime import progress
-from skop import Axes, Choices, ParamsFor, op, run
+import numpy as np
+
+from opspec.op import Axes, Choices, ParamsFor, op
+from opspec.runtime import progress, run
+from opspec.types import ImageOf, LabelsOf
 from skop.ops.labels import connect
 from skop.ops.normalize import percentile
 from skop.ops.segment.cellpose3 import cellpose3
 from skop.ops.segment.cellpose4 import cellpose4
 from skop.ops.segment.stardist2d import stardist2d_fluo
-from skop.types import ImageData, LabelsData
 
 #: What every stage is handed, and what the workflow refuses to make adjustable.
 _ZYX = list("zyx")
@@ -68,14 +70,14 @@ class Connected(NamedTuple):
     #: The normalized volume the segmenter actually saw. Returned because it
     #: is the evidence: if the top plane is still dim here, the normalization
     #: did its job, and a spurious object there is the segmenter's doing.
-    normalized: ImageData
+    normalized: ImageOf[np.ndarray]
     #: One label per object, consistent through the stack.
-    labels: LabelsData
+    labels: LabelsOf[np.ndarray]
 
 
 @op()
 def connect_2d_in_3d(
-    image: Annotated[ImageData, Axes("z", "y", "x")],
+    image: Annotated[ImageOf[np.ndarray], Axes("z", "y", "x")],
     normalizer: Annotated[Callable, Choices(percentile=percentile)] = percentile,
     normalizer_args: Annotated[
         dict | None, ParamsFor("normalizer", binds="image")

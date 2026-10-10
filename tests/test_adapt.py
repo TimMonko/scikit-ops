@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 import skop
+from opspec.op import Axes, OpSpec, Role, op
 from skop import _adapt
 from skop.ops import toy
 
@@ -27,7 +28,7 @@ def plan_for(fn, param, array, axes, **kwargs):
 def run_adapted(fn, param, array, axes, **kwargs):
     """Plan and execute in-process, the way a worker does."""
     plan = plan_for(fn, param, array, axes, **kwargs)
-    spec = skop.OpSpec.from_op(fn)
+    spec = OpSpec.from_op(fn)
     return _adapt.execute(spec, fn, {param: array}, {param: plan})
 
 
@@ -87,15 +88,15 @@ def test_scalar_outputs_stack_into_an_array():
 def test_unstackable_output_says_so():
     varying = [np.zeros((2, 3)), np.zeros((5, 3))]
     with pytest.raises(TypeError, match="shape varies"):
-        _adapt._reassemble("op", "points", varying, (2,), skop.Role.points)
+        _adapt._reassemble("op", "points", varying, (2,), Role.points)
     with pytest.raises(TypeError, match="cannot be stacked"):
         _adapt._reassemble("op", "notes", ["a", "b"], (2,), None)
 
 
-@skop.op
+@op
 def masked_sum(
-    image: Annotated[np.ndarray, skop.Axes("y", "x")],
-    mask: Annotated[np.ndarray, skop.Axes("y", "x")],
+    image: Annotated[np.ndarray, Axes("y", "x")],
+    mask: Annotated[np.ndarray, Axes("y", "x")],
 ) -> float:
     return float((image * mask).sum())
 
@@ -107,7 +108,7 @@ def test_two_stacks_are_looped_over_together():
         name: plan_for(masked_sum, name, array, list("zyx"))
         for name, array in (("image", image), ("mask", mask))
     }
-    spec = skop.OpSpec.from_op(masked_sum)
+    spec = OpSpec.from_op(masked_sum)
     sums = _adapt.execute(spec, masked_sum, {"image": image, "mask": mask}, plans)
     # One call per z, each with that z of both: 0, 24, 48.
     assert list(sums) == [0.0, 24.0, 48.0]
@@ -119,12 +120,12 @@ def test_stacks_looped_over_together_must_match():
         name: plan_for(masked_sum, name, array, list("zyx"))
         for name, array in (("image", image), ("mask", mask))
     }
-    spec = skop.OpSpec.from_op(masked_sum)
+    spec = OpSpec.from_op(masked_sum)
     with pytest.raises(ValueError, match="as many slices"):
         _adapt.execute(spec, masked_sum, {"image": image, "mask": mask}, plans)
 
 
 def test_no_plan_means_no_adaptation():
-    spec = skop.OpSpec.from_op(toy.quadrants)
+    spec = OpSpec.from_op(toy.quadrants)
     plain = _adapt.execute(spec, toy.quadrants, {"image": np.zeros((4, 6))}, {})
     assert plain.shape == (4, 6)

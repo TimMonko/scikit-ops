@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 import skop
+from opspec.op import OpSpec, Role, is_op
 
 SPECS, FAILURES = skop.discover()
 BY_NAME = {s.name: s for s in SPECS}
@@ -75,7 +76,7 @@ def test_workflow_bindings_name_real_parameters(spec):
             continue
         chooser = next(p for p in spec.inputs if p.name == param.params_for.chooser)
         for label, fn in chooser.choices.options:
-            names = {p.name for p in skop.OpSpec.from_op(fn).inputs}
+            names = {p.name for p in OpSpec.from_op(fn).inputs}
             missing = sorted(set(param.params_for.binds) - names)
             assert not missing, (
                 f"{spec.name}.{param.name} binds {missing}, "
@@ -163,7 +164,7 @@ def test_box_detectors_are_substitutable():
 def test_detected_boxes_are_boxes():
     # Without the role a front end has no way to know these are rectangles
     # to draw rather than an array to display.
-    from skop import Role
+    from opspec.op import Role
 
     for name in (
         "skop.ops.detect.fastsam:fastsam",
@@ -177,7 +178,7 @@ def test_tiled_yolo_exposes_boxes_and_aligned_features():
     spec = BY_NAME["skop.ops.detect.yolo:yolo"]
     assert spec.env == "pytorch"
     assert names(spec) == ("boxes", "confidences", "classes")
-    assert spec.outputs[0].role is skop.Role.boxes
+    assert spec.outputs[0].role is Role.boxes
     params = {p.name: p for p in spec.params}
     assert params["object_size"].default is None
     assert params["gpu_fraction"].default == 0.9
@@ -195,7 +196,7 @@ MASK_DETECTORS = (
 def test_mask_detector_takes_boxes_and_returns_masks_and_boxes(name):
     # The two-stage contract: what a box detector returns is what this
     # accepts, and what it returns says which prompts survived.
-    from skop import Role
+    from opspec.op import Role
 
     spec = BY_NAME[name]
     assert names(spec) == ("masks", "boxes")
@@ -279,17 +280,17 @@ def test_psf_models_agree_on_what_the_optics_are_called():
 def test_the_threshold_family_is_substitutable():
     # The property a front end depends on when it offers a menu of methods:
     # picking one is picking a method, never a different set of questions.
-    from skop import Role
+    from opspec.op import Role
     from skop.ops import threshold
 
     two_class = [
         name
         for name in dir(threshold)
-        if skop.is_op(getattr(threshold, name)) and name != "multiotsu"
+        if is_op(getattr(threshold, name)) and name != "multiotsu"
     ]
     assert len(two_class) >= 7, two_class
     for name in two_class:
-        spec = skop.OpSpec.from_op(getattr(threshold, name))
+        spec = OpSpec.from_op(getattr(threshold, name))
         assert [(p.name, p.type, p.default) for p in spec.params] == [
             ("image", np.ndarray, inspect.Parameter.empty),
             ("invert", bool, False),
@@ -305,9 +306,9 @@ def test_every_global_threshold_takes_a_whole_stack():
 
     for name in dir(threshold):
         fn = getattr(threshold, name)
-        if not skop.is_op(fn):
+        if not is_op(fn):
             continue
-        axes = next(p for p in skop.OpSpec.from_op(fn).params if p.name == "image").axes
+        axes = next(p for p in OpSpec.from_op(fn).params if p.name == "image").axes
         assert axes.variadic and axes.slots == (), f"{name} claims axes {axes}"
 
 
@@ -318,17 +319,15 @@ def test_filters_take_an_image_and_return_one(namespace):
     # role rather than guessing from the dtype.
     import importlib
 
-    from skop import Role
+    from opspec.op import Role
 
     module = importlib.import_module(f"skop.ops.{namespace}")
     ops = [
-        getattr(module, name)
-        for name in dir(module)
-        if skop.is_op(getattr(module, name))
+        getattr(module, name) for name in dir(module) if is_op(getattr(module, name))
     ]
     assert len(ops) >= 6, namespace
     for fn in ops:
-        spec = skop.OpSpec.from_op(fn)
+        spec = OpSpec.from_op(fn)
         assert spec.params[0].name == "image"
         assert spec.params[0].role is Role.image
         assert len(spec.outputs) == 1

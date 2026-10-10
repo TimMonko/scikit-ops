@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 import skop
-from opspec.op import Axes, Overlap, PeakMemory, op
+from opspec.op import Axes, OpSpec, Overlap, PeakMemory, op
 from opspec.tiling import plan_tiles
 from skop._tiling import run_tiles
 from skop.runner import tile_plan
@@ -191,7 +191,7 @@ def test_the_runner_keeps_axes_it_may_not_split_whole():
     ) -> np.ndarray:
         return image
 
-    spec = skop.OpSpec.from_op(deconvolve)
+    spec = OpSpec.from_op(deconvolve)
     volume, psf = np.zeros((32, 256, 256), np.uint16), np.zeros((15, 9, 9))
     plan = tile_plan(spec, {"image": volume, "psf": psf}, "20M")
     assert plan.calls > 1

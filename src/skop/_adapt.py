@@ -24,6 +24,8 @@ from typing import Any
 
 import numpy as np
 
+from opspec.op import FUNCTION, OpSpec, Role
+
 # Planning is opspec's: pure arithmetic over axis names and shapes, so it
 # needs no numpy. What follows it here is execution, which touches pixels.
 from opspec.plan import (
@@ -38,8 +40,6 @@ from opspec.plan import (
     plan,
 )
 from opspec.runtime import cancel_requested, progress
-
-from . import _spec
 
 __all__ = [
     "DISPOSITIONS",
@@ -72,7 +72,7 @@ def apply(plan: AdaptationPlan, array: np.ndarray) -> np.ndarray:
 
 
 def execute(
-    spec: _spec.OpSpec,
+    spec: OpSpec,
     fn: Any,
     args: dict,
     plans: dict[str, AdaptationPlan],
@@ -89,7 +89,7 @@ def execute(
     if not iterated:
         return fn(**args)
 
-    if spec.form != _spec.FUNCTION:
+    if spec.form != FUNCTION:
         raise ValueError(
             f"Op {spec.name} is {spec.form} form; iteration is implemented for "
             "function-form ops only, since the caller's buffer has the shape "
@@ -139,7 +139,7 @@ def execute(
     return results
 
 
-def _split(spec: _spec.OpSpec, result: Any) -> tuple:
+def _split(spec: OpSpec, result: Any) -> tuple:
     """One call's return value, as one value per declared output."""
     names = tuple(o.name for o in spec.outputs)
     if len(names) == 1:
@@ -158,13 +158,13 @@ def _reassemble(
     output: str,
     values: list,
     span: tuple[int, ...],
-    role: _spec.Role | None,
+    role: Role | None,
 ) -> Any:
     """Stack one output slot's per-slice values back into a whole."""
     if all(isinstance(value, np.ndarray) for value in values):
         shapes = {value.shape for value in values}
         if len(shapes) == 1:
-            if role is _spec.Role.labels:
+            if role is Role.labels:
                 values = _renumber(values)
             return np.stack(values).reshape(span + shapes.pop())
         raise TypeError(

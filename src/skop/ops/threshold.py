@@ -29,13 +29,13 @@ from typing import Annotated
 
 import numpy as np
 
-from skop import Axes, op
-from skop.types import ImageData, LabelsData
+from opspec.op import Axes, op
+from opspec.types import ImageOf, LabelsOf
 
 from ._util import to_gray
 
 #: What every op here takes: any number of axes, an RGB(A) axis collapsed.
-_Image = Annotated[ImageData, Axes(variadic=True)]
+_Image = Annotated[ImageOf[np.ndarray], Axes(variadic=True)]
 
 
 def _mask(gray: np.ndarray, value: float, invert: bool, label_objects: bool):
@@ -53,7 +53,7 @@ def otsu(
     image: _Image,
     invert: bool = False,
     label_objects: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Threshold an image by Otsu's method.
 
     Chooses the threshold that minimizes the variance within the two classes
@@ -81,7 +81,7 @@ def isodata(
     image: _Image,
     invert: bool = False,
     label_objects: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Threshold an image by the isodata (Ridler-Calvard) method.
 
     Iterates until the threshold sits exactly halfway between the mean of
@@ -108,7 +108,7 @@ def li(
     image: _Image,
     invert: bool = False,
     label_objects: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Threshold an image by Li's minimum cross-entropy method.
 
     Minimizes the information lost by replacing each class with its mean,
@@ -135,7 +135,7 @@ def mean(
     image: _Image,
     invert: bool = False,
     label_objects: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Threshold an image at its mean intensity.
 
     The simplest global threshold there is, and a reasonable baseline on an
@@ -161,7 +161,7 @@ def minimum(
     image: _Image,
     invert: bool = False,
     label_objects: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Threshold an image at the valley between its two histogram peaks.
 
     Smooths the histogram until exactly two maxima remain, then cuts at the
@@ -189,7 +189,7 @@ def triangle(
     image: _Image,
     invert: bool = False,
     label_objects: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Threshold an image by the triangle method.
 
     Draws a line from the histogram's peak to its far end and cuts where the
@@ -217,7 +217,7 @@ def yen(
     image: _Image,
     invert: bool = False,
     label_objects: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Threshold an image by Yen's maximum correlation criterion.
 
     An entropy method like Li's, but maximizing a correlation between the two
@@ -244,7 +244,7 @@ def multiotsu(
     image: _Image,
     classes: int = 3,
     label_objects: bool = False,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Split an image into several intensity classes, by Otsu's criterion.
 
     Otsu generalized: instead of one threshold there are ``classes - 1`` of

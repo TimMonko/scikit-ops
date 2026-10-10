@@ -20,11 +20,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import numpy as np
+
 import ophelper.boxes
 from ophelper.assets import file_from_url
+from opspec.op import Axes, op
 from opspec.runtime import progress
-from skop import op
-from skop.types import ImageData
+from opspec.types import ImageOf
 
 from .._util import to_rgb
 from ._result import Boxes
@@ -40,7 +42,7 @@ _WEIGHTS = "https://huggingface.co/RogerQi/MobileSAMV2/resolve/main/ObjectAwareM
 
 @op(env="segment-everything")
 def object_aware_yolo(
-    image: ImageData,
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")],
     conf: Annotated[
         float,
         {"widget_type": "FloatSlider", "min": 0.0, "max": 1.0, "step": 0.05},

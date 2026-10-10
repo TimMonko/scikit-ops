@@ -5,9 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated
 
+import numpy as np
+
+from opspec.op import Axes, op
 from opspec.runtime import cancel_requested, progress
-from skop import Axes, op
-from skop.types import ImageData
+from opspec.types import ImageOf
 
 from .._util import to_rgb
 from ._result import Detections
@@ -15,7 +17,7 @@ from ._result import Detections
 
 @op(env="pytorch")
 def yolo(
-    image: Annotated[ImageData, Axes("y", "x", "c?")],
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")],
     weights: Path,
     object_size: float | None = None,
     overlap: Annotated[float, {"min": 0.0, "max": 0.95}] = 0.15,

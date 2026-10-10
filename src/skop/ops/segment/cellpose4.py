@@ -15,9 +15,9 @@ from typing import Annotated
 
 import numpy as np
 
+from opspec.op import Axes, op
 from opspec.runtime import progress
-from skop import Axes, op
-from skop.types import ImageData, LabelsData
+from opspec.types import ImageOf, LabelsOf
 
 from .._util import channel_axis, to_gray
 
@@ -34,7 +34,7 @@ class PretrainedModel(Enum):
 
 @op(env="pytorch")
 def cellpose4(
-    image: Annotated[ImageData, Axes("y", "x", "c?")],
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")],
     model: PretrainedModel = PretrainedModel.cpsam_v2,
     pretrained_model: Path | None = None,
     diameter: Annotated[
@@ -54,7 +54,7 @@ def cellpose4(
     normalize: bool = True,
     collapse_channels: bool = False,
     use_gpu: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Segment cells with Cellpose.
 
     Args:

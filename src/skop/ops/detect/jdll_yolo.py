@@ -20,10 +20,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated
 
+import numpy as np
+
 import ophelper.boxes
+from opspec.op import Axes, op
 from opspec.runtime import progress
-from skop import op
-from skop.types import ImageData
+from opspec.types import ImageOf
 
 from .._util import to_rgb
 from ._result import Boxes
@@ -31,7 +33,7 @@ from ._result import Boxes
 
 @op(env="pytorch")
 def jdll_yolo(
-    image: ImageData,
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")],
     weights: Path,
     conf: Annotated[
         float,
@@ -72,7 +74,9 @@ def jdll_yolo(
     # An empty file picker sends Path('.'), which YOLO accepts and only
     # rejects deep inside predict.
     if not Path(weights).is_file():
-        raise FileNotFoundError(f"weights must be a YOLO .pt file, got {str(weights)!r}")
+        raise FileNotFoundError(
+            f"weights must be a YOLO .pt file, got {str(weights)!r}"
+        )
 
     progress(f"Loading {Path(weights).name}")
     model = YOLO(str(weights))

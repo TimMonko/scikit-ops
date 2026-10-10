@@ -24,9 +24,9 @@ import numpy as np
 
 import ophelper.boxes
 import ophelper.masks
+from opspec.op import op
 from opspec.runtime import progress
-from skop import op
-from skop.types import BoxesData, ImageData
+from opspec.types import BoxesOf, ImageOf
 
 from ._result import Masks
 
@@ -48,8 +48,8 @@ class PretrainedModel(Enum):
 
 @op(env="pytorch")
 def microsam_masks(
-    image: ImageData,
-    boxes: BoxesData,
+    image: ImageOf[np.ndarray],
+    boxes: BoxesOf[np.ndarray],
     model: PretrainedModel = PretrainedModel.light_microscopy,
 ) -> Masks:
     """Segment one object per bounding box.

@@ -23,9 +23,9 @@ from typing import Annotated
 
 import numpy as np
 
+from opspec.op import Axes, op
 from opspec.runtime import progress
-from skop import Axes, op
-from skop.types import ImageData, LabelsData
+from opspec.types import ImageOf, LabelsOf
 
 from .._util import to_gray
 
@@ -35,7 +35,7 @@ _HE = "2D_versatile_he"
 
 @op(env="stardist-tf")
 def stardist2d_fluo(
-    image: Annotated[ImageData, Axes("y", "x", "c?")],
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")],
     prob_thresh: Annotated[
         float,
         {"widget_type": "FloatSlider", "min": 0.0, "max": 1.0, "step": 0.05},
@@ -45,7 +45,7 @@ def stardist2d_fluo(
         {"widget_type": "FloatSlider", "min": 0.0, "max": 1.0, "step": 0.05},
     ] = 0.4,
     normalize: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Detect objects in a fluorescence image with pretrained StarDist.
 
     Args:
@@ -65,7 +65,7 @@ def stardist2d_fluo(
 
 @op(env="stardist-tf")
 def stardist2d_he(
-    image: Annotated[ImageData, Axes("y", "x", "c")],
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c")],
     prob_thresh: Annotated[
         float,
         {"widget_type": "FloatSlider", "min": 0.0, "max": 1.0, "step": 0.05},
@@ -75,7 +75,7 @@ def stardist2d_he(
         {"widget_type": "FloatSlider", "min": 0.0, "max": 1.0, "step": 0.05},
     ] = 0.4,
     normalize: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Detect objects in an H&E-stained image with pretrained StarDist.
 
     Args:
@@ -95,7 +95,7 @@ def stardist2d_he(
 
 @op(env="stardist-tf")
 def stardist2d_custom(
-    image: Annotated[ImageData, Axes("y", "x", "c?")],
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")],
     model_dir: Annotated[str, {"widget_type": "FileEdit", "mode": "d"}] = "",
     prob_thresh: Annotated[
         float,
@@ -106,7 +106,7 @@ def stardist2d_custom(
         {"widget_type": "FloatSlider", "min": 0.0, "max": 1.0, "step": 0.05},
     ] = 0.4,
     normalize: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Detect objects with a StarDist 2D model loaded from disk.
 
     The counterpart to the two pretrained ops: same prediction, but the model

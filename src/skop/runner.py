@@ -25,14 +25,15 @@ from typing import TYPE_CHECKING, Any, Union, get_args, get_origin
 import appose
 import numpy as np
 
+from opspec.op import FUNCTION, OpSpec, _strip
 from opspec.runtime import bind_runner, bind_task, unbind_runner, unbind_task
 from opspec.tiling import TilePlan
+from opspec.types import Array
 
-from . import _adapt, _codec, _spec, _tiling
+from . import _adapt, _codec, _tiling
 from .host import CALL as _CALL
 from .host import INIT as _INIT  # noqa: F401  (kept for out-of-process hosts)
 from .host import init_script as _init_script_for
-from .types import Array
 
 if TYPE_CHECKING:
     from typing import Self
@@ -315,7 +316,7 @@ class Runner:
         """The environment *op* runs in: the file that defines it, and where
         it is built. Nothing is built by asking.
         """
-        spec = _spec.OpSpec.from_op(op)
+        spec = OpSpec.from_op(op)
         if spec.env is None:
             raise ValueError(f"Op {spec.name} has no environment: it runs here")
         return self._env_for(spec.env, spec.module)
@@ -378,7 +379,7 @@ class Runner:
             script = f"{script}\n{extra.read_text(encoding='utf-8')}"
         return script
 
-    def service(self, spec: _spec.OpSpec, variant: str | None = None) -> Any:
+    def service(self, spec: OpSpec, variant: str | None = None) -> Any:
         """Get the worker serving this op, starting one if needed.
 
         Ops sharing an environment share a worker, unless one of them asks
@@ -461,7 +462,7 @@ class Runner:
                 new array. Left out, a tiled result too big for memory goes
                 to a temporary ``.npy`` memmap.
         """
-        spec = _spec.OpSpec.from_op(fn)
+        spec = OpSpec.from_op(fn)
         call_args = dict(args or {})
         call_args.update(kwargs)
         _validate(spec, call_args)
@@ -647,7 +648,7 @@ task.outputs['released'] = True
         self.close()
 
 
-def _validate(spec: _spec.OpSpec, args: dict) -> None:
+def _validate(spec: OpSpec, args: dict) -> None:
     known = {p.name for p in spec.params}
     unknown = set(args) - known
     if unknown:
@@ -687,7 +688,7 @@ def _into(out: Any, result: Any) -> Any:
 
 
 def tile_plan(
-    spec: _spec.OpSpec, args: dict, memory: int | str | None = None
+    spec: OpSpec, args: dict, memory: int | str | None = None
 ) -> TilePlan | None:
     """How ``Runner.run(..., memory=memory)`` would cut this call.
 
@@ -696,7 +697,7 @@ def tile_plan(
     return _tiling.Tiler(memory).plan(spec, args)
 
 
-def _to_declared(spec: _spec.OpSpec, args: dict) -> dict:
+def _to_declared(spec: OpSpec, args: dict) -> dict:
     """If a param isn't a numpy array but the op wants one, convert it.
 
     The whole array is read into memory (see docs/design/0017).
@@ -720,7 +721,7 @@ def _to_declared(spec: _spec.OpSpec, args: dict) -> dict:
 def _wants_numpy(annotation: Any, value: Any) -> bool:
     """Does the annotation need numpy? Not if it also accepts *value* as is."""
     if get_origin(annotation) in (Union, UnionType):
-        members = [_spec._strip(a) for a in get_args(annotation)]
+        members = [_strip(a) for a in get_args(annotation)]
     else:
         members = [annotation]
     members = [get_origin(m) or m for m in members]  # NDArray[...] -> ndarray
@@ -750,11 +751,11 @@ def _adaptations(
     return chosen
 
 
-def _unpack(spec: _spec.OpSpec, outputs: dict, buffers: dict) -> Any:
+def _unpack(spec: OpSpec, outputs: dict, buffers: dict) -> Any:
     names = tuple(o.name for o in spec.outputs)
     if not names:
         return None
-    if spec.form != _spec.FUNCTION:
+    if spec.form != FUNCTION:
         # Results landed in the caller's own buffers.
         owned = [buffers[name][0] for name in names if name in buffers]
         if not owned:

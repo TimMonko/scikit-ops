@@ -11,7 +11,7 @@ from typing import Annotated
 
 import numpy as np
 
-from skop import op
+from opspec.op import op
 
 
 @op(env="skimage")

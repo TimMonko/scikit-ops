@@ -16,9 +16,9 @@ from typing import Annotated, NamedTuple
 
 import numpy as np
 
+from opspec.op import Axes, op
 from opspec.runtime import progress
-from skop import Axes, op
-from skop.types import ImageData, LabelsData
+from opspec.types import ImageOf, LabelsOf
 
 
 class PretrainedModel(Enum):
@@ -39,10 +39,10 @@ class Target(Enum):
 
 class NucleiAndCells(NamedTuple):
     #: One label per nucleus.
-    nuclei: LabelsData | None
+    nuclei: LabelsOf[np.ndarray] | None
     #: One label per cell, numbered to match its nucleus. None for a model
     #: that only finds nuclei, or when only nuclei were asked for.
-    cells: LabelsData | None
+    cells: LabelsOf[np.ndarray] | None
 
 
 #: Bigger than this, in pixels along either axis, and the image is run in
@@ -52,8 +52,8 @@ _WHOLE = 2048
 
 @op(env="pytorch")
 def instanseg(
-    image: Annotated[ImageData, Axes("y", "x", "c?")],
-    cells: Annotated[ImageData, Axes("y", "x", "c?")] | None = None,
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")],
+    cells: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")] | None = None,
     model: PretrainedModel = PretrainedModel.fluorescence_nuclei_and_cells,
     target: Target = Target.nuclei_and_cells,
     nuclei_channel: Annotated[int, {"min": 0, "max": 64}] = 0,
@@ -96,6 +96,7 @@ def instanseg(
     import os
 
     import torch
+
     from ophelper.assets import cache_dir
 
     # InstanSeg downloads into its own package folder unless told otherwise.

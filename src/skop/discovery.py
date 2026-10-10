@@ -13,7 +13,7 @@ import importlib
 import pkgutil
 from dataclasses import dataclass
 
-from ._spec import OpSpec, is_op
+from opspec.op import OpSpec, is_op
 
 
 @dataclass(frozen=True)

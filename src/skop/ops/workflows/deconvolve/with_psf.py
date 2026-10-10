@@ -23,13 +23,13 @@ from typing import Annotated, NamedTuple
 
 import numpy as np
 
-from opspec.runtime import progress
-from skop import Choices, ParamsFor, op, run
+from opspec.op import Choices, ParamsFor, op
+from opspec.runtime import progress, run
+from opspec.types import ImageOf
 from skop.ops.deconvolve.richardson_lucy import richardson_lucy
 from skop.ops.deconvolve.richardson_lucy_cupy import richardson_lucy_cupy
 from skop.ops.kernels.gibson_lanni import gibson_lanni
 from skop.ops.kernels.psf import gaussian_psf
-from skop.types import ImageData
 
 #: Non-circulant, as clij2-fft and tnia-python deconvolve in tiles: it
 #: handles the image's edges, where circulant wraps them onto each other
@@ -48,14 +48,14 @@ class Deconvolved(NamedTuple):
     #: The kernel the deconvolution used. Returned rather than discarded
     #: because it is the parameter people actually iterate on, and looking at
     #: it is the fastest way to see that the optics were entered wrong.
-    psf: ImageData
+    psf: ImageOf[np.ndarray]
     #: The restored image.
-    image: ImageData
+    image: ImageOf[np.ndarray]
 
 
 @op()
 def deconvolve_with_psf(
-    image: ImageData,
+    image: ImageOf[np.ndarray],
     psf_op: Annotated[
         Callable,
         Choices(gaussian=gaussian_psf, gibson_lanni=gibson_lanni),

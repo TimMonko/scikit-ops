@@ -274,7 +274,7 @@ def test_preparation_runs_during_inference_with_task_context(
     import importlib
     import threading
 
-    from skop import _progress
+    from opspec import runtime
 
     accelerator()
     module = importlib.import_module(yolo.__module__)
@@ -284,7 +284,7 @@ def test_preparation_runs_during_inference_with_task_context(
 
     def to_rgb(crop):
         if threading.current_thread() is not threading.main_thread():
-            assert _progress._current.get() is task
+            assert runtime._task.get() is task
         if tuple(crop[0, 0, :2]) == (0, 60):
             prepared.set()
         return original(crop)

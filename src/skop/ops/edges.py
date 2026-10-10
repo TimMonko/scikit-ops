@@ -31,19 +31,19 @@ from typing import Annotated
 
 import numpy as np
 
-from skop import Axes, op
-from skop.types import ImageData
+from opspec.op import Axes, op
+from opspec.types import ImageOf
 
 from ._util import channel_axis, per_channel, to_gray
 
 #: An op happy with any number of axes, RGB(A) handled channel by channel.
-_Image = Annotated[ImageData, Axes(variadic=True)]
+_Image = Annotated[ImageOf[np.ndarray], Axes(variadic=True)]
 
 #: An op that only knows about planes, with or without colour.
-_Plane = Annotated[ImageData, Axes("y", "x", "c?")]
+_Plane = Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")]
 
 #: An op that handles a plane or a volume, and nothing else.
-_Volume = Annotated[ImageData, Axes("z?", "y", "x")]
+_Volume = Annotated[ImageOf[np.ndarray], Axes("z?", "y", "x")]
 
 
 def _sigmas(sigma_min: float, sigma_max: float, sigma_step: float) -> np.ndarray:
@@ -60,7 +60,7 @@ def _apply(image: np.ndarray, fn) -> np.ndarray:
 
 
 @op(env="skimage")
-def sobel(image: _Image) -> ImageData:
+def sobel(image: _Image) -> ImageOf[np.ndarray]:
     """Find edges with the Sobel operator.
 
     A central difference along each axis, smoothed across the others, with
@@ -82,7 +82,7 @@ def sobel(image: _Image) -> ImageData:
 
 
 @op(env="skimage")
-def scharr(image: _Image) -> ImageData:
+def scharr(image: _Image) -> ImageOf[np.ndarray]:
     """Find edges with the Scharr operator.
 
     Sobel's kernel, with the weights rebalanced so that the operator's
@@ -104,7 +104,7 @@ def scharr(image: _Image) -> ImageData:
 
 
 @op(env="skimage")
-def prewitt(image: _Image) -> ImageData:
+def prewitt(image: _Image) -> ImageOf[np.ndarray]:
     """Find edges with the Prewitt operator.
 
     Sobel without the extra weight on the centre row: the smoothing across
@@ -125,7 +125,7 @@ def prewitt(image: _Image) -> ImageData:
 
 
 @op(env="skimage")
-def farid(image: _Plane) -> ImageData:
+def farid(image: _Plane) -> ImageOf[np.ndarray]:
     """Find edges with the Farid-Simoncelli operator.
 
     A larger kernel, fitted so that the derivative it computes is as accurate
@@ -145,7 +145,7 @@ def farid(image: _Plane) -> ImageData:
 
 
 @op(env="skimage")
-def roberts(image: _Plane) -> ImageData:
+def roberts(image: _Plane) -> ImageOf[np.ndarray]:
     """Find edges with the Roberts cross operator.
 
     The smallest edge filter there is: two 2x2 diagonal differences. It
@@ -166,7 +166,7 @@ def roberts(image: _Plane) -> ImageData:
 
 
 @op(env="skimage")
-def laplace(image: _Image, ksize: int = 3) -> ImageData:
+def laplace(image: _Image, ksize: int = 3) -> ImageOf[np.ndarray]:
     """Find edges with the Laplacian, the sum of the second derivatives.
 
     Unlike the gradient filters, this is not directional: it responds to
@@ -193,7 +193,7 @@ def difference_of_gaussians(
     image: _Image,
     low_sigma: float = 1.0,
     high_sigma: float = 4.0,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Band-pass an image, by subtracting one Gaussian blur from another.
 
     Blurring at two scales and taking the difference keeps exactly the
@@ -231,7 +231,7 @@ def unsharp_mask(
     image: _Image,
     radius: float = 1.0,
     amount: float = 1.0,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Sharpen an image by adding back what blurring it removes.
 
     Blur the image, subtract that from the original to get the detail, then
@@ -272,7 +272,7 @@ def frangi(
     black_ridges: bool = True,
     alpha: float = 0.5,
     beta: float = 0.5,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Enhance tubular structures, by Frangi's vesselness measure.
 
     Written for angiograms and used ever since for anything filamentous --
@@ -315,7 +315,7 @@ def sato(
     sigma_max: float = 10.0,
     sigma_step: float = 2.0,
     black_ridges: bool = True,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Enhance tubular structures, by Sato's tubeness measure.
 
     The same Hessian sweep as :func:`frangi` with a simpler combination of
@@ -352,7 +352,7 @@ def meijering(
     sigma_max: float = 10.0,
     sigma_step: float = 2.0,
     black_ridges: bool = True,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Enhance neurite-like structures, by Meijering's neuriteness measure.
 
     A Hessian filter tuned for thin, low-contrast, branching structures --

@@ -15,8 +15,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from opspec.op import op
 from opspec.runtime import progress
-from skop import op
 from skop.ops.segment.cellpose3 import (
     _CHANNEL_NUMBER,
     CytoplasmChannel,

@@ -38,9 +38,9 @@ from typing import Annotated
 
 import numpy as np
 
+from opspec.op import Axes, op
 from opspec.runtime import progress
-from skop import Axes, op
-from skop.types import ImageData, LabelsData
+from opspec.types import ImageOf, LabelsOf
 
 from .._util import to_gray
 
@@ -102,7 +102,7 @@ _CHANNEL_NUMBER = {"grayscale": 0, "none": 0, "red": 1, "green": 2, "blue": 3}
 
 @op(env="cellpose3")
 def cellpose3(
-    image: Annotated[ImageData, Axes("y", "x", "c?")],
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")],
     model: PretrainedModel = PretrainedModel.cyto3,
     pretrained_model: Path | None = None,
     cytoplasm_channel: CytoplasmChannel = CytoplasmChannel.grayscale,
@@ -123,7 +123,7 @@ def cellpose3(
     min_size: int = 15,
     normalize: bool = True,
     use_gpu: bool = True,
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Segment cells with one of Cellpose 3's pretrained models.
 
     Args:

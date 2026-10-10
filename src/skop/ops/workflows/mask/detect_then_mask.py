@@ -24,13 +24,15 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Annotated, NamedTuple
 
-from opspec.runtime import progress
-from skop import Choices, ParamsFor, op, run
+import numpy as np
+
+from opspec.op import Choices, ParamsFor, op
+from opspec.runtime import progress, run
+from opspec.types import BoxesOf, ImageOf, MasksOf
 from skop.ops.detect.fastsam import fastsam
 from skop.ops.detect.object_aware_yolo import object_aware_yolo
 from skop.ops.mask.microsam import microsam_masks
 from skop.ops.mask.mobilesam import mobilesam_masks
-from skop.types import BoxesData, ImageData, MasksData
 
 
 class Detected(NamedTuple):
@@ -46,14 +48,14 @@ class Detected(NamedTuple):
 
     #: The prompts that produced the masks: the detector's boxes, minus any
     #: the mask detector answered with nothing.
-    boxes: BoxesData
+    boxes: BoxesOf[np.ndarray]
     #: (N, Y, X) uint8, one object per plane, possibly overlapping.
-    masks: MasksData
+    masks: MasksOf[np.ndarray]
 
 
 @op()
 def detect_then_mask(
-    image: ImageData,
+    image: ImageOf[np.ndarray],
     detector: Annotated[
         Callable,
         Choices(object_aware_yolo=object_aware_yolo, fastsam=fastsam),

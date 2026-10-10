@@ -14,7 +14,7 @@ from __future__ import annotations
 from enum import Enum
 from pathlib import Path
 
-import skop
+from opspec.op import OpSpec, op
 from skop import worker
 
 
@@ -23,7 +23,7 @@ class Colour(Enum):
     green = "green"
 
 
-@skop.op(env="minimal")
+@op(env="minimal")
 def paths(
     required: Path,
     optional: Path | None = None,
@@ -36,7 +36,7 @@ def paths(
 
 def coerce(**args):
     """Run ``_coerce`` over the op above, as a worker does on arrival."""
-    return worker._coerce(skop.OpSpec.from_op(paths), args)
+    return worker._coerce(OpSpec.from_op(paths), args)
 
 
 def test_path_is_rebuilt():

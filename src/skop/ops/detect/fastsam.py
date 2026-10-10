@@ -20,11 +20,13 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated
 
+import numpy as np
+
 import ophelper.boxes
 from ophelper.assets import file_from_url
+from opspec.op import Axes, op
 from opspec.runtime import progress
-from skop import op
-from skop.types import ImageData
+from opspec.types import ImageOf
 
 from .._util import to_rgb
 from ._result import Boxes
@@ -41,7 +43,7 @@ class PretrainedModel(Enum):
 
 @op(env="pytorch")
 def fastsam(
-    image: ImageData,
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")],
     model: PretrainedModel = PretrainedModel.small,
     conf: Annotated[
         float,

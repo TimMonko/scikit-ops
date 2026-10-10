@@ -30,16 +30,16 @@ from typing import Annotated
 
 import numpy as np
 
-from skop import Axes, Overlap, PeakMemory, op
-from skop.types import ImageData
+from opspec.op import Axes, Overlap, PeakMemory, op
+from opspec.types import ImageOf
 
 from ._util import Footprint, channel_axis, footprint, per_channel
 
 #: An op happy with any number of axes, RGB(A) handled channel by channel.
-_Image = Annotated[ImageData, Axes(variadic=True)]
+_Image = Annotated[ImageOf[np.ndarray], Axes(variadic=True)]
 
 #: An op that only knows about planes, with or without colour.
-_Plane = Annotated[ImageData, Axes("y", "x", "c?")]
+_Plane = Annotated[ImageOf[np.ndarray], Axes("y", "x", "c?")]
 
 
 def _unit(image: np.ndarray) -> tuple[np.ndarray, float, float]:
@@ -63,7 +63,7 @@ def _unit(image: np.ndarray) -> tuple[np.ndarray, float, float]:
     peak_memory=PeakMemory(scale=2, dtype="float32"),
     merge="crop",
 )
-def gaussian(image: _Image, sigma: float = 1.0) -> ImageData:
+def gaussian(image: _Image, sigma: float = 1.0) -> ImageOf[np.ndarray]:
     """Blur an image with a Gaussian kernel.
 
     The linear smoother, and the one everything else is compared against: it
@@ -98,7 +98,7 @@ def median(
     image: _Image,
     radius: int = 1,
     shape: Footprint = Footprint.ball,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Replace each pixel with the median of its neighborhood.
 
     The classic answer to salt-and-pepper noise, and the reason to prefer it
@@ -130,7 +130,7 @@ def median(
 
 
 @op(env="skimage")
-def mean(image: _Image, radius: int = 1) -> ImageData:
+def mean(image: _Image, radius: int = 1) -> ImageOf[np.ndarray]:
     """Replace each pixel with the mean of a box around it.
 
     The cheapest smoother there is -- the cost of a box mean does not depend
@@ -156,7 +156,7 @@ def mean(image: _Image, radius: int = 1) -> ImageData:
 
 
 @op(env="skimage")
-def kuwahara(image: _Image, radius: int = 2) -> ImageData:
+def kuwahara(image: _Image, radius: int = 2) -> ImageOf[np.ndarray]:
     """Smooth an image while keeping its edges sharp, by Kuwahara's method.
 
     Each pixel's window is split into overlapping corners -- four quadrants in
@@ -232,7 +232,7 @@ def bilateral(
     image: _Plane,
     sigma_color: float = 0.1,
     sigma_spatial: float = 1.0,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Smooth an image, weighting neighbors by intensity as well as distance.
 
     A Gaussian blur whose kernel is multiplied by a second Gaussian over the
@@ -270,7 +270,7 @@ def tv_chambolle(
     image: _Image,
     weight: float = 0.1,
     max_num_iter: int = 200,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Denoise an image by total-variation minimization.
 
     Finds the image closest to this one whose total variation -- the summed
@@ -309,7 +309,7 @@ def wavelet(
     mode: Annotated[str, {"choices": ["soft", "hard"]}] = "soft",
     wavelet_name: Annotated[str, {"choices": ["db1", "db2", "haar", "sym2"]}] = "db1",
     sigma: float | None = None,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Denoise an image by thresholding its wavelet coefficients.
 
     Noise is spread evenly across a wavelet decomposition while structure
@@ -357,7 +357,7 @@ def nl_means(
     h: float = 0.1,
     sigma: float | None = None,
     fast_mode: bool = True,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Denoise an image by averaging over similar patches nearby.
 
     Every other filter here decides what to average by where a pixel is; this
@@ -415,7 +415,7 @@ def butterworth(
     cutoff_frequency_ratio: float = 0.05,
     order: float = 2.0,
     high_pass: bool = False,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Smooth an image by attenuating its high frequencies.
 
     The only filter here that works in the frequency domain: it multiplies

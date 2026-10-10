@@ -28,11 +28,13 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
-from skop.types import BoxesData, MasksData
+import numpy as np
+
+from opspec.types import BoxesOf, MasksOf
 
 
 class Masks(NamedTuple):
     #: (N, Y, X) uint8, 0 or 1, one object per plane. These may overlap.
-    masks: MasksData
+    masks: MasksOf[np.ndarray]
     #: (N, 4) as [min_y, min_x, max_y, max_x] -- the prompt each mask answers.
-    boxes: BoxesData
+    boxes: BoxesOf[np.ndarray]

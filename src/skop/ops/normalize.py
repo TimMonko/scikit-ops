@@ -30,13 +30,13 @@ from typing import Annotated
 
 import numpy as np
 
-from skop import Axes, op
-from skop.types import ImageData
+from opspec.op import Axes, op
+from opspec.types import ImageOf
 
 
 @op(env="minimal")
 def percentile(
-    image: Annotated[ImageData, Axes(variadic=True)],
+    image: Annotated[ImageOf[np.ndarray], Axes(variadic=True)],
     low: Annotated[
         float,
         {"widget_type": "FloatSpinBox", "min": 0.0, "max": 100.0, "step": 0.1},
@@ -46,7 +46,7 @@ def percentile(
         {"widget_type": "FloatSpinBox", "min": 0.0, "max": 100.0, "step": 0.1},
     ] = 99.8,
     clip: bool = False,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Rescale intensities so that two percentiles land on 0 and 1.
 
     The normalization csbdeep applies inside StarDist and CARE, as an op that

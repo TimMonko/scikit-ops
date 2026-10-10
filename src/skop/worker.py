@@ -16,9 +16,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, get_args, get_origin
 
+from opspec.op import FUNCTION, OpSpec
 from opspec.runtime import bind_task, unbind_task
 
-from . import _adapt, _codec, _spec
+from . import _adapt, _codec
 
 
 def invoke(
@@ -49,7 +50,7 @@ def invoke(
         owns.
     """
     fn = getattr(_import(module, origin), function)
-    spec = _spec.OpSpec.from_op(fn)
+    spec = OpSpec.from_op(fn)
     adaptations = {
         plan["param"]: _adapt.AdaptationPlan.from_dict(plan) for plan in plans or []
     }
@@ -82,7 +83,7 @@ def _import(module: str, origin: dict | None) -> Any:
     return importlib.import_module(module)
 
 
-def _coerce(spec: _spec.OpSpec, args: dict) -> dict:
+def _coerce(spec: OpSpec, args: dict) -> dict:
     """Rebuild the rich argument types that JSON flattened in transit.
 
     An Enum travels as its value and a Path as a string, so an op called
@@ -121,8 +122,8 @@ def _unwrap_optional(annotation: Any) -> Any:
     return args[0] if len(args) == 1 else annotation
 
 
-def _check_args(spec: _spec.OpSpec, args: dict) -> None:
-    if spec.form == _spec.FUNCTION:
+def _check_args(spec: OpSpec, args: dict) -> None:
+    if spec.form == FUNCTION:
         return
     missing = [
         p.name for p in spec.params if p.direction is not None and p.name not in args
@@ -135,9 +136,9 @@ def _check_args(spec: _spec.OpSpec, args: dict) -> None:
         )
 
 
-def _pack(spec: _spec.OpSpec, result: Any, refs: list) -> dict:
+def _pack(spec: OpSpec, result: Any, refs: list) -> dict:
     names = tuple(o.name for o in spec.outputs)
-    if spec.form != _spec.FUNCTION or not names:
+    if spec.form != FUNCTION or not names:
         # The host owns the output buffers; nothing to send back.
         return {}
     if names == ("result",):

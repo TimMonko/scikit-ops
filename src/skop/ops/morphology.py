@@ -26,13 +26,13 @@ from typing import Annotated
 
 import numpy as np
 
-from skop import Axes, op
-from skop.types import ImageData
+from opspec.op import Axes, op
+from opspec.types import ImageOf
 
 from ._util import Footprint, channel_axis, footprint, per_channel
 
 #: Every op here works on any number of axes, RGB(A) channel by channel.
-_Image = Annotated[ImageData, Axes(variadic=True)]
+_Image = Annotated[ImageOf[np.ndarray], Axes(variadic=True)]
 
 
 def _apply(image: np.ndarray, radius: int, shape: Footprint, fn) -> np.ndarray:
@@ -49,7 +49,7 @@ def erosion(
     image: _Image,
     radius: int = 1,
     shape: Footprint = Footprint.ball,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Shrink bright regions, by taking the minimum under the footprint.
 
     Bright objects lose a border of ``radius`` and dark ones grow by the
@@ -76,7 +76,7 @@ def dilation(
     image: _Image,
     radius: int = 1,
     shape: Footprint = Footprint.ball,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Grow bright regions, by taking the maximum under the footprint.
 
     The dual of :func:`erosion`: bright objects gain a border of ``radius``,
@@ -102,7 +102,7 @@ def opening(
     image: _Image,
     radius: int = 1,
     shape: Footprint = Footprint.ball,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Remove bright detail smaller than the footprint.
 
     An erosion followed by a dilation. The erosion deletes whatever the
@@ -131,7 +131,7 @@ def closing(
     image: _Image,
     radius: int = 1,
     shape: Footprint = Footprint.ball,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Remove dark detail smaller than the footprint.
 
     A dilation followed by an erosion: the mirror of :func:`opening`, filling
@@ -159,7 +159,7 @@ def white_tophat(
     image: _Image,
     radius: int = 1,
     shape: Footprint = Footprint.ball,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Keep bright detail smaller than the footprint, dropping the background.
 
     The image minus its :func:`opening` -- that is, exactly what the opening
@@ -191,7 +191,7 @@ def black_tophat(
     image: _Image,
     radius: int = 1,
     shape: Footprint = Footprint.ball,
-) -> ImageData:
+) -> ImageOf[np.ndarray]:
     """Keep dark detail smaller than the footprint, dropping the background.
 
     The :func:`closing` minus the image, and the dual of

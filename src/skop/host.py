@@ -29,7 +29,9 @@ import importlib
 from pathlib import Path
 from typing import Any
 
-from . import _adapt, _spec
+from opspec.op import COMPUTER, FUNCTION, INPLACE, WIRE_TYPES, Role, is_op
+
+from . import _adapt
 
 # The script sent for every op call. Its last statement is an expression
 # yielding a dict, which Appose turns into the task's outputs.
@@ -169,10 +171,10 @@ def constants() -> dict:
         "metadata_init_append": METADATA_INIT_APPEND,
         "describe": DESCRIBE,
         "plan": PLAN,
-        "wire_types": list(_spec.WIRE_TYPES),
-        "roles": [role.value for role in _spec.Role],
+        "wire_types": list(WIRE_TYPES),
+        "roles": [role.value for role in Role],
         "dispositions": list(_adapt.DISPOSITIONS),
-        "forms": [_spec.FUNCTION, _spec.COMPUTER, _spec.INPLACE],
+        "forms": [FUNCTION, COMPUTER, INPLACE],
     }
 
 
@@ -258,7 +260,7 @@ def op_function(op: str) -> Any:
     if not module_name or not function_name:
         raise ValueError(f"Not an op ID: {op!r}. Expected '<module>:<function>'.")
     fn = getattr(importlib.import_module(module_name), function_name, None)
-    if fn is None or not _spec.is_op(fn):
+    if fn is None or not is_op(fn):
         raise ValueError(f"No op named {op!r}")
     return fn
 

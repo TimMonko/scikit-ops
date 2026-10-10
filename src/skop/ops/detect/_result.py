@@ -23,12 +23,14 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
-from skop.types import BoxesData
+import numpy as np
+
+from opspec.types import BoxesOf
 
 
 class Boxes(NamedTuple):
     #: (N, 4) as [min_y, min_x, max_y, max_x], in image coordinates.
-    boxes: BoxesData
+    boxes: BoxesOf[np.ndarray]
 
 
 class Detections(NamedTuple):
@@ -38,6 +40,6 @@ class Detections(NamedTuple):
     features role (docs/spec/per-object-features.md).
     """
 
-    boxes: BoxesData
+    boxes: BoxesOf[np.ndarray]
     confidences: list[float]
     classes: list[int]

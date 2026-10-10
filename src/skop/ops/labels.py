@@ -11,17 +11,17 @@ from typing import Annotated
 
 import numpy as np
 
+from opspec.op import Axes, op
 from opspec.runtime import progress
-from skop import Axes, op
-from skop.types import LabelsData
+from opspec.types import LabelsOf
 
 
 @op(env="skimage")
 def connect(
-    labels: Annotated[LabelsData, Axes("z", "y", "x")],
+    labels: Annotated[LabelsOf[np.ndarray], Axes("z", "y", "x")],
     threshold: float = 0.1,
     criterion: Annotated[str, {"choices": ["iou", "iop"]}] = "iou",
-) -> LabelsData:
+) -> LabelsOf[np.ndarray]:
     """Give one object one label along an axis, by linking overlaps.
 
     Segmenting a volume slice by slice numbers each slice from scratch, so one

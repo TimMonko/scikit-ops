@@ -12,9 +12,9 @@ from typing import Annotated, NamedTuple
 
 import numpy as np
 
+from opspec.op import Axes, Out, op
 from opspec.runtime import cancel_requested, progress
-from skop import Axes, Out, op
-from skop.types import ImageData, LabelsData, PointsData
+from opspec.types import ImageOf, LabelsOf, PointsOf
 
 
 @op(env="minimal")
@@ -47,8 +47,8 @@ def scale(
 
 @op(env="minimal")
 def scale_into(
-    image: ImageData,
-    result: Out[ImageData],
+    image: ImageOf[np.ndarray],
+    result: Out[ImageOf[np.ndarray]],
     factor: float = 2.0,
 ) -> None:
     """Computer form: fill a buffer the caller allocated.
@@ -62,8 +62,8 @@ def scale_into(
 
 @op(env="minimal")
 def quadrants(
-    image: Annotated[ImageData, Axes("y", "x")],
-) -> LabelsData:
+    image: Annotated[ImageOf[np.ndarray], Axes("y", "x")],
+) -> LabelsOf[np.ndarray]:
     """Label a plane's four quadrants, 1 through 4.
 
     A strictly 2-D op, and the standing test case for adapting one: fed a
@@ -101,12 +101,12 @@ def probe() -> str:
 
 
 class Findings(NamedTuple):
-    labels: LabelsData
-    points: PointsData
+    labels: LabelsOf[np.ndarray]
+    points: PointsOf[np.ndarray]
 
 
 @op(env="minimal")
-def find_nothing(image: ImageData) -> Findings:
+def find_nothing(image: ImageOf[np.ndarray]) -> Findings:
     """Return an empty result, as a segmentation that finds nothing would."""
     return Findings(
         labels=np.zeros_like(image, dtype=np.uint16),

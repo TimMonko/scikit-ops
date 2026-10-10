@@ -15,8 +15,8 @@ from typing import Annotated
 
 import numpy as np
 
+from opspec.op import Axes, Overlap, PeakMemory, op
 from opspec.runtime import cancel_requested, progress
-from skop import Axes, Overlap, PeakMemory, op
 
 from ._edges import pad_and_mask
 from .richardson_lucy import DELTA

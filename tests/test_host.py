@@ -15,7 +15,7 @@ import pytest
 
 import skop
 import skop.host
-import skop.types
+from opspec.op import WIRE_TYPES, OpSpec, Role, type_spec
 from skop import host
 from skop.ops import toy
 
@@ -25,9 +25,9 @@ class Flavor(Enum):
     savory = "SV"
 
 
-def roundtrip(spec: skop.OpSpec) -> skop.OpSpec:
+def roundtrip(spec: OpSpec) -> OpSpec:
     """A spec through JSON and back, as a front end would receive it."""
-    return skop.OpSpec.from_dict(json.loads(json.dumps(spec.to_dict())))
+    return OpSpec.from_dict(json.loads(json.dumps(spec.to_dict())))
 
 
 # -- every op through the wire ----------------------------------------
@@ -42,7 +42,7 @@ def test_every_op_classifies():
     assert not failures
     for spec in specs:
         for param in spec.params:
-            assert skop.type_spec(param.type).name in skop.WIRE_TYPES
+            assert type_spec(param.type).name in WIRE_TYPES
 
 
 def test_every_op_round_trips():
@@ -200,8 +200,8 @@ def test_constants_are_what_the_runner_actually_uses():
 
 def test_constants_describe_the_vocabularies():
     constants = host.constants()
-    assert set(constants["wire_types"]) == set(skop.WIRE_TYPES)
-    assert set(constants["roles"]) == {r.value for r in skop.Role}
+    assert set(constants["wire_types"]) == set(WIRE_TYPES)
+    assert set(constants["roles"]) == {r.value for r in Role}
     assert set(constants["dispositions"]) == {skop.ITERATE, skop.SELECT, skop.PASS}
 
 

@@ -32,9 +32,9 @@ import numpy as np
 import ophelper.boxes
 import ophelper.masks
 from ophelper.assets import file_from_url
+from opspec.op import op
 from opspec.runtime import progress
-from skop import op
-from skop.types import BoxesData, ImageData
+from opspec.types import BoxesOf, ImageOf
 
 from .._util import to_rgb
 from ._result import Masks
@@ -46,8 +46,8 @@ _ENCODER = "https://huggingface.co/RogerQi/MobileSAMV2/resolve/main/l2.pt"
 
 @op(env="segment-everything")
 def mobilesam_masks(
-    image: ImageData,
-    boxes: BoxesData,
+    image: ImageOf[np.ndarray],
+    boxes: BoxesOf[np.ndarray],
     batch_size: int = 100,
 ) -> Masks:
     """Segment one object per bounding box.

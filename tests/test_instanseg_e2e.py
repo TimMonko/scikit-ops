@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-import skop
+import oprunner
 
 pytestmark = pytest.mark.env("pytorch")
 
@@ -19,7 +19,7 @@ RADIUS = 10
 
 @pytest.fixture(scope="module")
 def runner():
-    with skop.Runner() as r:
+    with oprunner.Runner() as r:
         yield r
 
 

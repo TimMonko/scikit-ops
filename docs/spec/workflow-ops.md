@@ -25,9 +25,9 @@ Two workflows and the machinery to render them, 2026-07-28.
   `boxes` come from the detector, and a rule covering half the cases is harder
   to explain than none.
 - **The runner is ambient**, exactly as `progress()` is: `Runner.run` binds
-  itself for the duration of a workflow, so `skop.run` inside the body reuses
+  itself for the duration of a workflow, so `oprunner.run` inside the body reuses
   the warm workers, and a sub-op's progress and cancellation reach the panel.
-  Mode B is unaffected — outside a run, `skop.run` falls through to the default
+  Mode B is unaffected — outside a run, `oprunner.run` falls through to the default
   runner.
 - **skop-napari draws a workflow with one combo box per stage**, the chosen
   op's own widgets underneath, rebuilt on change. Nearly free: the widgets
@@ -51,7 +51,7 @@ Three workflows landed:
   silently undone step one.
 
 `connect_2d_in_3d` also settles how a workflow pins axes: it passes
-`axes={"image": list("zyx")}` on each `skop.run`, so the segmenter is looped
+`axes={"image": list("zyx")}` on each `oprunner.run`, so the segmenter is looped
 over z inside its own worker while the variadic normalizer gets the volume
 whole. The workflow declares `Axes("z", "y", "x")` on its own input so a front
 end can ask which of the caller's axes is z, and passes nothing down — each

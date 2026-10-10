@@ -11,7 +11,6 @@ import sys
 from pathlib import Path
 
 import pytest
-from appose.util.environment import appose_envs_dir
 
 src = str(Path(__file__).resolve().parent / "src")
 if src not in sys.path:
@@ -31,8 +30,17 @@ def pytest_addoption(parser):
     )
 
 
+@functools.cache
 def _is_built(env_id: str) -> bool:
-    return (Path(appose_envs_dir()) / f"skop-{env_id}").is_dir()
+    """Whether *env_id* is built, under the name the runner gives it.
+
+    Asked of the runner rather than worked out here, so a change to how
+    environments are named cannot quietly turn every environment test into
+    a skip. A build that never finished counts as missing.
+    """
+    from oprunner import Runner
+
+    return Runner().environment_status(env_id) != "missing"
 
 
 @functools.lru_cache(maxsize=1)

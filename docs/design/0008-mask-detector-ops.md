@@ -118,7 +118,7 @@ information. The community answer is
 segment-everything mask detectors already emit it. It is the right *shape* to
 think in. It cannot be the wire format:
 
-- `skop._codec` rejects `bool` outright. Appose derives element size from the
+- `oprunner._codec` rejects `bool` outright. Appose derives element size from the
   dtype name, and `bool` has no digit in it. Masks have to be `uint8` to cross
   the boundary at all.
 - Each array in each dict becomes its own shared-memory block. A 400-object

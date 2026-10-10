@@ -13,7 +13,7 @@ from.
 
 The masks are a stack rather than a label image because SAM masks overlap,
 and rather than the list of annotation dicts the SAM ecosystem passes around
-because that cannot cross the Appose boundary: ``skop._codec`` rejects
+because that cannot cross the Appose boundary: ``oprunner._codec`` rejects
 ``bool`` outright, and N dicts of arrays would become N shared-memory blocks
 where one stack is one. See docs/design/0008-mask-detector-ops.md.
 

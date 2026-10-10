@@ -96,9 +96,9 @@ test holds them numerically equivalent, so picking one is picking on speed.
 To list what the collection currently offers:
 
 ```python
-import skop
+import oprunner
 
-specs, failures = skop.discover()
+specs, failures = oprunner.discover()
 ```
 
 For a large image and a YOLO `.pt` model:
@@ -107,7 +107,7 @@ For a large image and a YOLO `.pt` model:
 from pathlib import Path
 from skop.ops.detect import yolo
 
-with skop.Runner() as runner:
+with oprunner.Runner() as runner:
     found = runner.run(
         yolo, image=image, weights=Path("best.pt"),
         object_size=100, overlap=0.15, gpu_fraction=0.9,
@@ -144,18 +144,19 @@ in host RAM; only the current resized batch enters the GPU.
 ```python
 from typing import Annotated, NamedTuple
 
-from skop import op
-from skop.types import ImageData, LabelsData
+import numpy as np
+from opspec.op import op
+from opspec.types import ImageOf, LabelsOf
 
 
 class Result(NamedTuple):
-    labels: LabelsData
+    labels: LabelsOf[np.ndarray]
     count: int
 
 
 @op(env="stardist-tf")
 def segment(
-    image: ImageData,
+    image: ImageOf[np.ndarray],
     prob_thresh: Annotated[
         float, {"widget_type": "FloatSlider", "min": 0.0, "max": 1.0}
     ] = 0.5,
@@ -183,35 +184,35 @@ is called directly.
 ### Saying what an array is
 
 Every op here passes `np.ndarray` around, which tells a front end nothing
-about how to display it. `skop.types` adds that missing half:
+about how to display it. opspec's types add that missing half:
 
-| Alias | Role | napari shows it as |
+| Write | Role | napari shows it as |
 | --- | --- | --- |
-| `ImageData` | `Role.image` | an Image layer |
-| `LabelsData` | `Role.labels` | a Labels layer |
-| `PointsData` | `Role.points` | a Points layer |
-| `VectorsData` | `Role.vectors` | a Vectors layer |
-| `TracksData` | `Role.tracks` | a Tracks layer |
-| `BoxesData` | `Role.boxes` | a Shapes layer |
-| `MasksData` | `Role.masks` | a Labels layer, once projected |
+| `ImageOf[np.ndarray]` | `Role.image` | an Image layer |
+| `LabelsOf[np.ndarray]` | `Role.labels` | a Labels layer |
+| `PointsOf[np.ndarray]` | `Role.points` | a Points layer |
+| `VectorsOf[np.ndarray]` | `Role.vectors` | a Vectors layer |
+| `TracksOf[np.ndarray]` | `Role.tracks` | a Tracks layer |
+| `BoxesOf[np.ndarray]` | `Role.boxes` | a Shapes layer |
+| `MasksOf[np.ndarray]` | `Role.masks` | a Labels layer, once projected |
 
-`MasksData` is the odd one: an `(N, Y, X)` stack of masks that may overlap, so
+`MasksOf` is the odd one: an `(N, Y, X)` stack of masks that may overlap, so
 it is not a label image and no viewer shows it directly. A front end projects
-it with `skop.masks` — flattened to 2-D, or kept as a rotatable 3-D stack —
+it with `ophelper.masks` — flattened to 2-D, or kept as a rotatable 3-D stack —
 and gets to offer that as a choice, since re-projecting costs a numpy call
 rather than another run of the op.
 
-They are `Annotated[np.ndarray, ...]` aliases, so nothing else changes: the
-codec still sees an array, direct callers still get an array, and
-`ParamSpec.type` is still `np.ndarray`. They compose with the rest —
-`Out[LabelsData]` and `Annotated[LabelsData, {"label": "Nuclei"}]` both work,
-in either order.
+They are `Annotated[np.ndarray, ...]`, so nothing else changes: the codec
+still sees an array, direct callers still get an array, and `ParamSpec.type`
+is still `np.ndarray`. They compose with the rest —
+`Out[LabelsOf[np.ndarray]]` and
+`Annotated[LabelsOf[np.ndarray], {"label": "Nuclei"}]` both work.
 
 Roles are advisory and never guessed. An unannotated array reports
 `role is None`, and deciding what to do with that is the front end's business,
-not skop's. Nothing in `skop.types` imports napari; the names simply mirror
-`napari.types` so that mapping is a lookup rather than a judgement call, and
-`Role` is equally the hook a Fiji or plain-magicgui front end reads.
+not opspec's. Nothing in `opspec.types` imports napari; the roles simply
+mirror `napari.types` so that mapping is a lookup rather than a judgement call,
+and `Role` is equally the hook a Fiji or plain-magicgui front end reads.
 
 ### Where it goes
 
@@ -252,14 +253,14 @@ inplace op must be handed its buffers.
 ## Running an op
 
 ```python
-import skop
+import oprunner
 from skop.ops import toy
 
 # Directly, in this process, using this process's dependencies.
 toy.add(2, 3)
 
 # Or in the op's own environment, in a worker process.
-with skop.Runner() as runner:
+with oprunner.Runner() as runner:
     runner.run(toy.add, a=2, b=3)
 ```
 

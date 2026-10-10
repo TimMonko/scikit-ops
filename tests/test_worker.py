@@ -15,7 +15,7 @@ from enum import Enum
 from pathlib import Path
 
 from opspec.op import OpSpec, op
-from skop import worker
+from oprunner import worker
 
 
 class Colour(Enum):

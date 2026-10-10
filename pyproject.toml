@@ -32,10 +32,7 @@ classifiers = [
 
 requires-python = ">=3.10"
 dependencies = [
-    "appose>=0.12",
     "numpy",
-    # How much memory is free, for an op's default budget (skop._tiling).
-    "psutil",
     # The spec layer, from its own directory in this repo. A git URL so that
     # `pip install git+https://github.com/apposed/scikit-ops` finds it: opspec
     # is not on PyPI. PyPI refuses packages with URL dependencies, so this
@@ -43,6 +40,9 @@ dependencies = [
     "opspec @ git+https://github.com/apposed/scikit-ops#subdirectory=opspec",
     # Helpers for writing ops (boxes, masks, downloads), from ./ophelper.
     "ophelper @ git+https://github.com/apposed/scikit-ops#subdirectory=ophelper",
+    # The runner, from ./oprunner. The ops don't need it to be called
+    # directly, but installing scikit-ops still gets everything, as before.
+    "oprunner @ git+https://github.com/apposed/scikit-ops#subdirectory=oprunner",
 ]
 
 [dependency-groups]
@@ -96,6 +96,7 @@ default-groups = ["dev", "examples"]
 [tool.uv.sources]
 opspec = { path = "opspec", editable = true }
 ophelper = { path = "ophelper", editable = true }
+oprunner = { path = "oprunner", editable = true }
 
 [project.urls]
 homepage = "https://github.com/apposed/scikit-ops"

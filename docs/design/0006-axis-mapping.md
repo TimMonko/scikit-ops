@@ -136,7 +136,7 @@ axes × dispositions per leftover axis* — there is no list to show.
 So `plans()` and `choose()` are replaced by one function:
 
 ```python
-skop.plan(fn, param, array, axes, position=, mapping=, dispositions=)
+opspec.plan.plan(fn, param, array, axes, position=, mapping=, dispositions=)
 ```
 
 Called with just the axes it returns skop's best effort. Called with `mapping`
@@ -175,7 +175,7 @@ conditional shape is two ops, not a conditional-shape language.
 
 - Nothing an op can declare forbids a user from running it. The only refusals
   left are arithmetic impossibilities.
-- `Extra` and `skop.plans` are gone from the public surface; `skop.plan`,
+- `Extra` and `skop.plans` are gone from the public surface; `opspec.plan.plan`,
   `skop.Slot` and the disposition constants (`ITERATE`, `SELECT`, `PASS`) join it.
 - A front end must now render a mapping *and* dispositions, which is more work
   than a combo box — the cost of the flexibility, paid once per front end. See

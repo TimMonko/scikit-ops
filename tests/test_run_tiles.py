@@ -1,4 +1,4 @@
-"""Running an op tile by tile on the host: skop._tiling, and Runner(memory=).
+"""Running an op tile by tile on the host: oprunner._tiling, and Runner(memory=).
 
 The planner itself is opspec's, tested in opspec/tests/test_tiling.py.
 """
@@ -9,12 +9,13 @@ from typing import Annotated
 
 import numpy as np
 import pytest
+from oprunner._tiling import run_tiles
+from oprunner.runner import tile_plan
 
-import skop
+import oprunner
+import opspec.plan
 from opspec.op import Axes, OpSpec, Overlap, PeakMemory, op
 from opspec.tiling import plan_tiles
-from skop._tiling import run_tiles
-from skop.runner import tile_plan
 
 RADIUS = 2
 
@@ -78,7 +79,7 @@ def test_gaussian_tiled_through_a_runner_equals_gaussian_whole():
 
     data = image((24, 60, 80))
     lazy = Lazy(data)
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         whole = runner.run(gaussian, image=data, sigma=1.5)
         # 8 bytes a pixel, ~0.9 MB whole: a 200K budget means several tiles.
         tiled = runner.run(gaussian, image=lazy, sigma=1.5, memory="200K")
@@ -95,9 +96,9 @@ def test_a_plan_that_changes_nothing_does_not_stop_tiling():
     from skop.ops.smooth import gaussian
 
     data = image((24, 60, 80))
-    plan = skop.plan(gaussian, "image", data, list("zyx"))
+    plan = opspec.plan.plan(gaussian, "image", data, list("zyx"))
     assert not plan.iterate and not plan.select
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         tiled = runner.run(
             gaussian, image=data, sigma=1.5, memory="200K", plans={"image": plan}
         )
@@ -137,7 +138,7 @@ def test_out_is_filled_whether_or_not_the_run_is_tiled():
     from skop.ops.smooth import gaussian
 
     data = image((24, 60, 80))
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         for memory in ("200K", "off"):
             out = np.zeros(data.shape, np.float32)
             result = runner.run(gaussian, image=data, memory=memory, out=out)
@@ -226,7 +227,7 @@ VOLUME = {"image": np.zeros((16, 512, 512), np.uint8)}
 
 
 def test_a_tiler_can_override_the_overlap_and_the_tile_size():
-    plan = skop.Tiler(memory="1G", overlap=3, tile_shape=(16, 128, 128)).plan(
+    plan = oprunner.Tiler(memory="1G", overlap=3, tile_shape=(16, 128, 128)).plan(
         smooth, VOLUME
     )
     assert plan.overlap == 3
@@ -235,33 +236,33 @@ def test_a_tiler_can_override_the_overlap_and_the_tile_size():
 
 
 def test_off_and_an_op_without_hints_plan_nothing():
-    assert skop.Tiler.off().plan(smooth, VOLUME) is None
+    assert oprunner.Tiler.off().plan(smooth, VOLUME) is None
 
     @op
     def plain(image: np.ndarray) -> np.ndarray:
         return image
 
-    assert skop.Tiler().plan(plain, VOLUME) is None
+    assert oprunner.Tiler().plan(plain, VOLUME) is None
 
 
 def test_a_gpu_op_budgets_the_gpus_free_memory(monkeypatch):
-    from skop import _tiling
+    from oprunner import _tiling
 
     monkeypatch.setattr(_tiling, "gpu_free", lambda: 1024**3)
-    assert skop.Tiler(memory=0.5).budget("gpu") == 1024**3 // 2
+    assert oprunner.Tiler(memory=0.5).budget("gpu") == 1024**3 // 2
     # 16 x 512 x 512 x 8 bytes is 32M: a GPU budget of 4M cuts it up.
-    assert skop.Tiler(memory=4 / 1024).plan(on_gpu, VOLUME).calls > 1
+    assert oprunner.Tiler(memory=4 / 1024).plan(on_gpu, VOLUME).calls > 1
 
 
 def test_a_gpu_that_cannot_be_asked_tiles_nothing(monkeypatch):
-    from skop import _tiling
+    from oprunner import _tiling
 
     monkeypatch.setattr(_tiling, "gpu_free", lambda: None)
-    assert skop.Tiler().plan(on_gpu, VOLUME) is None
+    assert oprunner.Tiler().plan(on_gpu, VOLUME) is None
 
 
 def test_nvidia_smi_is_read_in_mib():
-    from skop._tiling import _parse_nvidia_smi
+    from oprunner._tiling import _parse_nvidia_smi
 
     assert _parse_nvidia_smi("7800\n512\n") == [7800 * 1024**2, 512 * 1024**2]
 
@@ -290,7 +291,7 @@ def test_a_tiler_guesses_the_padding_of_a_psf_not_made_yet():
     from skop.ops.deconvolve.richardson_lucy_cupy import richardson_lucy_cupy
 
     volume = {"image": np.zeros((64, 512, 512), np.float32), "noncirc": True}
-    plan = skop.Tiler(memory="1G", overlap=10).plan(richardson_lucy_cupy, volume)
+    plan = oprunner.Tiler(memory="1G", overlap=10).plan(richardson_lucy_cupy, volume)
     assert plan.overlap == 10 and plan.calls > 1
 
 
@@ -305,14 +306,16 @@ def recorded(image: np.ndarray) -> np.ndarray:
 
 @op
 def calls_recorded(image: np.ndarray) -> np.ndarray:
-    return skop.run(recorded, image=image)
+    return oprunner.run(recorded, image=image)
 
 
 def test_a_workflow_passes_its_tiler_to_the_ops_it_runs():
     SEEN.clear()
     data = image()
-    with skop.Runner() as runner:
-        result = runner.run(calls_recorded, image=data, tiler=skop.Tiler(memory="40K"))
+    with oprunner.Runner() as runner:
+        result = runner.run(
+            calls_recorded, image=data, tiler=oprunner.Tiler(memory="40K")
+        )
     assert len(SEEN) > 1 and all(shape != data.shape for shape in SEEN)
     assert np.array_equal(result, data)
 
@@ -320,11 +323,11 @@ def test_a_workflow_passes_its_tiler_to_the_ops_it_runs():
 def test_a_tiled_run_says_which_tile_it_is_on():
     events = []
     data = image()
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         runner.run(
             recorded,
             image=data,
-            tiler=skop.Tiler(memory="40K"),
+            tiler=oprunner.Tiler(memory="40K"),
             on_progress=events.append,
         )
     tiles = [event.tile for event in events if getattr(event, "tile", None)]

@@ -12,14 +12,14 @@ from typing import Annotated
 import numpy as np
 import pytest
 
-import skop
+import opspec.plan
 from opspec.op import Axes, OpSpec, Role, op
-from skop import _adapt
+from oprunner import _adapt
 from skop.ops import toy
 
 
 def plan_for(fn, param, array, axes, **kwargs):
-    return skop.plan(fn, param, array, axes, **kwargs)
+    return opspec.plan.plan(fn, param, array, axes, **kwargs)
 
 
 # -- execution -----------------------------------------------------------
@@ -50,7 +50,7 @@ def test_iteration_renumbers_labels_across_slices():
 def test_slice_plan_runs_once():
     stack = np.zeros((3, 4, 6))
     labels = run_adapted(
-        toy.quadrants, "image", stack, list("zyx"), dispositions={0: skop.SELECT}
+        toy.quadrants, "image", stack, list("zyx"), dispositions={0: opspec.plan.SELECT}
     )
     assert labels.shape == (4, 6)
 
@@ -75,7 +75,7 @@ def test_a_remapped_run_processes_cross_sections():
         np.zeros((5, 4, 6)),
         list("zyx"),
         mapping=(0, 1),
-        dispositions={2: skop.ITERATE},
+        dispositions={2: opspec.plan.ITERATE},
     )
     assert labels.shape == (6, 5, 4)
 

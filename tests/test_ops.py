@@ -13,10 +13,10 @@ import inspect
 import numpy as np
 import pytest
 
-import skop
+import oprunner
 from opspec.op import OpSpec, Role, is_op
 
-SPECS, FAILURES = skop.discover()
+SPECS, FAILURES = oprunner.discover()
 BY_NAME = {s.name: s for s in SPECS}
 
 
@@ -39,7 +39,7 @@ LEAVES = [s for s in SPECS if not s.is_workflow]
 
 @pytest.mark.parametrize("spec", LEAVES, ids=lambda s: s.name)
 def test_op_declares_a_known_environment(spec):
-    runner = skop.Runner()
+    runner = oprunner.Runner()
     # Raises FileNotFoundError, listing what does exist, if the env is absent.
     assert runner.env_config(spec.env).exists()
 

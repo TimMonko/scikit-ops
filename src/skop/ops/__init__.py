@@ -15,5 +15,5 @@ from the outside, so a namespace can grow from one into the other without
 breaking a caller's import.
 
 Discovery walks this package recursively, skipping underscore-prefixed
-modules; see ``skop.discovery``.
+modules; see ``oprunner.discovery``.
 """

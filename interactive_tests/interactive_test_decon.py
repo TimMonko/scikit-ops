@@ -16,7 +16,7 @@ import time
 
 import numpy as np
 
-import skop
+import oprunner
 from skop.ops.deconvolve import richardson_lucy, richardson_lucy_cupy
 from skop.ops.generate import synthetic_nuclei
 from skop.ops.kernels import gaussian_psf
@@ -24,7 +24,7 @@ from skop.ops.kernels import gaussian_psf
 ITERATIONS = 50
 PHOTONS = 200.0  # lower means noisier, and a harder time for the algorithm
 
-runner = skop.Runner()
+runner = oprunner.Runner()
 
 print("Generating a synthetic volume...")
 truth = runner.run(

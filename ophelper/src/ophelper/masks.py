@@ -11,7 +11,7 @@ which keeps every overlap, and is what ``MasksData`` annotates.
 
 ``uint8`` rather than ``bool`` is forced, not chosen. Appose derives an
 element size from the dtype name, and ``bool`` has no digit in it, so a
-boolean array cannot cross the process boundary at all (``skop._codec``).
+boolean array cannot cross the process boundary at all (``oprunner._codec``).
 The functions here accept ``bool`` and cast, since that is what SAM hands
 back and the cast has to happen somewhere.
 

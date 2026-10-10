@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 import tifffile  # NB: napari depends on it, so it is here whenever napari is.
 
-import skop
+import oprunner
 from skop.ops.deconvolve import richardson_lucy_cupy
 
 ITERATIONS = 200
@@ -68,7 +68,7 @@ def show_progress(event):
         print(f"    {event.message:40s}", end="\r")
 
 
-runner = skop.Runner()
+runner = oprunner.Runner()
 
 print(f"\nDeconvolving on the GPU, {ITERATIONS} iterations...")
 

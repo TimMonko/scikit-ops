@@ -30,7 +30,7 @@ import napari
 import numpy as np
 from skimage.data import coins
 
-import skop
+import oprunner
 from ophelper import boxes
 from skop.ops.detect import fastsam, object_aware_yolo
 
@@ -43,7 +43,7 @@ IOU = 0.9
 image = coins()
 print(f"coins: {image.shape} {image.dtype}, range {image.min()}-{image.max()}")
 
-runner = skop.Runner()
+runner = oprunner.Runner()
 
 # Building a PyTorch environment takes minutes with nothing else to show for
 # it, so say which phase it is in rather than appearing to hang.

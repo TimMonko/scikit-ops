@@ -11,12 +11,13 @@ from __future__ import annotations
 import json
 from enum import Enum
 
+import oprunner.host
 import pytest
 
-import skop
-import skop.host
+import oprunner
+import opspec.plan
 from opspec.op import WIRE_TYPES, OpSpec, Role, type_spec
-from skop import host
+from oprunner import host
 from skop.ops import toy
 
 
@@ -38,7 +39,7 @@ def roundtrip(spec: OpSpec) -> OpSpec:
 
 def test_every_op_classifies():
     # UNKNOWN is allowed; a crash while classifying is not.
-    specs, failures = skop.discover()
+    specs, failures = oprunner.discover()
     assert not failures
     for spec in specs:
         for param in spec.params:
@@ -46,7 +47,7 @@ def test_every_op_classifies():
 
 
 def test_every_op_round_trips():
-    specs, _ = skop.discover()
+    specs, _ = oprunner.discover()
     assert specs
     for spec in specs:
         assert roundtrip(spec).to_dict() == spec.to_dict()
@@ -64,7 +65,7 @@ def test_describe_is_json():
 
 
 def test_describe_matches_discover():
-    specs, _ = skop.discover()
+    specs, _ = oprunner.discover()
     described = host.describe()
     assert [op["name"] for op in described["ops"]] == [s.name for s in specs]
 
@@ -100,7 +101,7 @@ def test_plan_matches_the_in_process_call():
     over_wire = host.plan(
         "skop.ops.toy:quadrants", "image", [3, 64, 32], ["z", "y", "x"]
     )
-    in_process = skop.plan(toy.quadrants, "image", (3, 64, 32), list("zyx"))
+    in_process = opspec.plan.plan(toy.quadrants, "image", (3, 64, 32), list("zyx"))
     assert over_wire == in_process.to_dict()
 
 
@@ -117,7 +118,7 @@ def test_plan_accepts_json_string_keys():
         [3, 64, 32],
         ["z", "y", "x"],
         position={"0": 2},
-        dispositions={"0": skop.SELECT},
+        dispositions={"0": opspec.plan.SELECT},
     )
     assert plan["select"] == [[0, 2]]
     assert not plan["uses_all_data"]
@@ -190,7 +191,7 @@ def test_axis_order_is_numpy_order():
 
 
 def test_constants_are_what_the_runner_actually_uses():
-    from skop import runner
+    from oprunner import runner
 
     constants = host.constants()
     assert constants["call"] == runner._CALL
@@ -202,7 +203,11 @@ def test_constants_describe_the_vocabularies():
     constants = host.constants()
     assert set(constants["wire_types"]) == set(WIRE_TYPES)
     assert set(constants["roles"]) == {r.value for r in Role}
-    assert set(constants["dispositions"]) == {skop.ITERATE, skop.SELECT, skop.PASS}
+    assert set(constants["dispositions"]) == {
+        opspec.plan.ITERATE,
+        opspec.plan.SELECT,
+        opspec.plan.PASS,
+    }
 
 
 # --- Where the worker looks for skop --------------------------------------
@@ -211,22 +216,22 @@ def test_constants_describe_the_vocabularies():
 # an environment installs. An install's root is the host's site-packages,
 # which holds everything, and putting that first hands a worker the host's
 # whole environment -- fatal when the two run different Pythons. See the
-# note on skop.host.INIT_APPEND.
+# note on oprunner.host.INIT_APPEND.
 
 
 def test_a_source_tree_is_a_checkout(tmp_path):
-    assert skop.host.is_checkout(tmp_path)
+    assert oprunner.host.is_checkout(tmp_path)
 
 
 def test_site_packages_is_not_a_checkout():
     import sysconfig
 
     purelib = sysconfig.get_paths()["purelib"]
-    assert not skop.host.is_checkout(purelib)
+    assert not oprunner.host.is_checkout(purelib)
 
 
 def test_checkout_root_goes_first(tmp_path):
-    script = skop.host.init_script(tmp_path)
+    script = oprunner.host.init_script(tmp_path)
     assert "sys.path.insert(0, " in script
     assert "sys.path.append(" not in script
 
@@ -234,7 +239,7 @@ def test_checkout_root_goes_first(tmp_path):
 def test_installed_root_goes_last():
     import sysconfig
 
-    script = skop.host.init_script(sysconfig.get_paths()["purelib"])
+    script = oprunner.host.init_script(sysconfig.get_paths()["purelib"])
     assert "sys.path.append(" in script
     assert "sys.path.insert(0, " not in script
 
@@ -242,8 +247,8 @@ def test_installed_root_goes_last():
 def test_metadata_variant_tracks_the_same_decision(tmp_path):
     import sysconfig
 
-    assert "skop_describe" in skop.host.init_script(tmp_path, metadata=True)
-    installed = skop.host.init_script(
+    assert "skop_describe" in oprunner.host.init_script(tmp_path, metadata=True)
+    installed = oprunner.host.init_script(
         sysconfig.get_paths()["purelib"], metadata=True
     )
     assert "sys.path.append(" in installed
@@ -251,8 +256,8 @@ def test_metadata_variant_tracks_the_same_decision(tmp_path):
 
 def test_constants_still_carry_the_original_scripts():
     """Additive: a host that knows only these two behaves as it did."""
-    constants = skop.host.constants()
-    assert constants["init"] == skop.host.INIT
-    assert constants["metadata_init"] == skop.host.METADATA_INIT
+    constants = oprunner.host.constants()
+    assert constants["init"] == oprunner.host.INIT
+    assert constants["metadata_init"] == oprunner.host.METADATA_INIT
     assert "init_append" in constants
     assert "metadata_init_append" in constants

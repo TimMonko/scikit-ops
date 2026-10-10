@@ -41,7 +41,7 @@ from pathlib import Path
 import numpy as np
 from yolo_data import IMAGES, open_levels
 
-import skop
+import oprunner
 from skop.ops.detect import fastsam, jdll_yolo
 
 WEIGHTS = Path(__file__).resolve().parents[4] / "i2k-2026" / "models" / "yolo26n.pt"
@@ -108,7 +108,7 @@ print(
 
 found = []
 start = time.perf_counter()
-with skop.Runner() as runner:
+with oprunner.Runner() as runner:
     for i, (y, x) in enumerate(origins, 1):
         result = runner.run(fn, image=image[y : y + tile, x : x + tile], **params)
         b = np.asarray(result.boxes, dtype=float).reshape(-1, 4)

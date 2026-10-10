@@ -1,4 +1,4 @@
-"""The worker-side half of skop.
+"""The worker-side half of oprunner.
 
 This module is loaded inside every op environment, via an Appose service init
 script. It must therefore stay austere: standard library, numpy, and appose

@@ -42,7 +42,7 @@ import scipy.fft
 from scipy.signal import fftconvolve
 from skop_napari import OpsPanel
 
-import skop
+import oprunner
 from skop.ops.kernels.gibson_lanni import gibson_lanni
 
 parser = argparse.ArgumentParser()
@@ -56,7 +56,7 @@ AXES = ("z", "y", "x")
 # From a runner of its own, before the panel exists: the panel's runner
 # reports to the GUI, which is not running yet, and would wait on it.
 print("making a Gibson-Lanni PSF, 64 x 64 x 32, in the sdeconv environment")
-with skop.Runner() as runner:
+with oprunner.Runner() as runner:
     psf = runner.run(gibson_lanni, xy_size=64, z_size=32)
 
 # -- the spheres --------------------------------------------------------------

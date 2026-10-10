@@ -201,7 +201,7 @@ from skimage.data import coins
 
 image = coins()  # (303, 384) uint8
 
-runner = skop.Runner()
+runner = oprunner.Runner()
 a = runner.run(fastsam, image=image)
 b = runner.run(object_aware_yolo, image=image)
 print(f"fastsam: {len(a.boxes)} boxes, object aware: {len(b.boxes)} boxes")

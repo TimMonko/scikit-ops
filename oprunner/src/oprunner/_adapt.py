@@ -10,7 +10,7 @@ The plan is built best-effort and then *overridden*, rather than chosen from an
 enumeration. Which of the caller's axes fills which slot, and what becomes of
 the ones left over, is a per-axis decision belonging to whoever owns the data:
 whether a stack should be processed plane by plane or as a volume is a property
-of the experiment, not of the op. So skop picks a sensible default, says where
+of the experiment, not of the op. So oprunner picks a sensible default, says where
 that default looks doubtful (``AdaptationPlan.warnings``), and forbids nothing.
 
 Planning is pure arithmetic over axis names and shapes, so it happens on the

@@ -46,9 +46,9 @@ import argparse
 import time
 
 import numpy as np
+from oprunner._tiling import gpu_free
 
-import skop
-from skop._tiling import gpu_free
+import oprunner
 from skop.ops.deconvolve.richardson_lucy import richardson_lucy
 from skop.ops.deconvolve.richardson_lucy_cupy import richardson_lucy_cupy
 
@@ -115,7 +115,7 @@ if memory is not None:
         memory = float(memory)  # 0.5: a fraction
     except ValueError:
         pass  # 1G: a size
-tiler = skop.Tiler(
+tiler = oprunner.Tiler(
     memory=memory,
     overlap=args.overlap,
     tile_shape=tuple(args.tile) if args.tile else None,
@@ -136,7 +136,7 @@ print(f"plan: {plan.summary if plan else 'not tiled (no budget known)'}")
 # -- the run ------------------------------------------------------------------
 
 tasks = []
-with skop.Runner() as runner:
+with oprunner.Runner() as runner:
     started = time.perf_counter()
     result = runner.run(op, call, tiler=tiler, on_start=tasks.append)
     took = time.perf_counter() - started
@@ -147,7 +147,7 @@ with skop.Runner() as runner:
 
     if args.compare:
         started = time.perf_counter()
-        whole = runner.run(op, call, tiler=skop.Tiler.off())
+        whole = runner.run(op, call, tiler=oprunner.Tiler.off())
         print(f"untiled: {time.perf_counter() - started:.1f} s")
         diff = np.abs(np.asarray(result, np.float64) - whole)
         scale = float(np.abs(whole).max())

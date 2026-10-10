@@ -2605,6 +2605,30 @@ requires-dist = [
 dev = [{ name = "pytest" }]
 
 [[package]]
+name = "oprunner"
+version = "0.1.0.dev0"
+source = { editable = "oprunner" }
+dependencies = [
+    { name = "appose" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "opspec" },
+    { name = "psutil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "appose", specifier = ">=0.12" },
+    { name = "numpy" },
+    { name = "opspec", editable = "opspec" },
+    { name = "psutil" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest" }]
+
+[[package]]
 name = "opspec"
 version = "0.1.0.dev0"
 source = { editable = "opspec" }
@@ -4183,13 +4207,12 @@ name = "scikit-ops"
 version = "0.1.0.dev0"
 source = { editable = "." }
 dependencies = [
-    { name = "appose" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "ophelper" },
+    { name = "oprunner" },
     { name = "opspec" },
-    { name = "psutil" },
 ]
 
 [package.dev-dependencies]
@@ -4218,11 +4241,10 @@ examples = [
 
 [package.metadata]
 requires-dist = [
-    { name = "appose", specifier = ">=0.12" },
     { name = "numpy" },
     { name = "ophelper", editable = "ophelper" },
+    { name = "oprunner", editable = "oprunner" },
     { name = "opspec", editable = "opspec" },
-    { name = "psutil" },
 ]
 
 [package.metadata.requires-dev]

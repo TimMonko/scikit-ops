@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oprunner"
+version = "0.1.0.dev0"
+description = "Run image-processing ops in their own environments, with Appose."
+license = "BSD-2-Clause"
+authors = [{name = "scikit-ops developers"}]
+readme = "README.md"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "appose>=0.12",
+    "numpy",
+    "psutil",
+    # A git URL: opspec is not on PyPI yet.
+    "opspec @ git+https://github.com/apposed/scikit-ops#subdirectory=opspec",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.hatch.metadata]
+# The opspec git URL above, until opspec is on PyPI.
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oprunner"]
+
+[tool.uv.sources]
+opspec = { path = "../opspec", editable = true }

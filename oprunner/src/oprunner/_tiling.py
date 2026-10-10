@@ -394,7 +394,7 @@ def _allocate(
     """
     if np.dtype(dtype).itemsize * int(np.prod(shape)) <= room:
         return np.zeros(shape, dtype=dtype) if zeros else np.empty(shape, dtype=dtype)
-    folder = Path(tempfile.mkdtemp(prefix="skop-tiled-"))
+    folder = Path(tempfile.mkdtemp(prefix="oprunner-tiled-"))
     return np.lib.format.open_memmap(
         folder / "result.npy", mode="w+", dtype=dtype, shape=shape
     )

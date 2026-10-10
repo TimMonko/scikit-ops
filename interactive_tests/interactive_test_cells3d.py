@@ -18,7 +18,7 @@ pretrained model weights.
 import numpy as np
 from skimage.data import cells3d
 
-import skop
+import oprunner
 from skop.ops.segment.stardist2d import PretrainedModel, stardist2d
 from skop.ops.segment.starfun3d import Model, segment_nuclei
 
@@ -34,7 +34,7 @@ nuclei = volume[:, NUCLEI_CHANNEL]
 middle = nuclei.shape[0] // 2
 print(f"  nuclei channel: {nuclei.shape}, middle slice z={middle}")
 
-runner = skop.Runner()
+runner = oprunner.Runner()
 
 print("\nSending the middle nuclei slice to stardist2d...")
 slice_labels = runner.run(

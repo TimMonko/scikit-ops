@@ -23,7 +23,7 @@ A front end may read `OpSpec` and nothing else. Specifically:
 | `OutputSpec.role` | which display type |
 
 Plus `Runner.run(..., on_progress=, on_start=)`, the three `subscribe_build_*`
-methods ([design 0004](../design/0004-build-feedback.md)), and `skop.plan`
+methods ([design 0004](../design/0004-build-feedback.md)), and `opspec.plan.plan`
 ([design 0006](../design/0006-axis-mapping.md)) — which is the sharpest case of
 the rule below, since a front end must work out an array's axes itself before
 skop will fit it to anything, and then owns the mapping decision on top: skop

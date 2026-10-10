@@ -1,7 +1,7 @@
 # scikit-ops — notes for Claude
 
-Image-processing **ops**, and `skop`, the machinery that runs them. An op is an
-ordinary Python function; the same function can be called directly, run in an
+Image-processing **ops** (`skop`, the collection; a working name) and
+**oprunner**, the machinery that runs them. An op is an ordinary Python function; the same function can be called directly, run in an
 isolated environment through Appose, or wrapped in a GUI, and nothing about it
 changes between those modes.
 
@@ -12,8 +12,8 @@ built, and graduates into a numbered design doc when it lands.
 ## Layout
 
 ```
-src/skop/                 op-independent machinery
-src/skop/ops/<ns>[.py|/]  ops, one namespace per file or package
+src/skop/ops/<ns>[.py|/]  ops, one namespace per file or package (the collection)
+oprunner/                 the runner, its own package: environments, workers, tiling
 opspec/                   the spec layer, its own package: @op, OpSpec, roles, plans
 ophelper/                 helpers for writing ops, its own package: boxes, masks, assets
 envs/<env-id>/pixi.toml   environment definitions, shared between ops
@@ -40,18 +40,19 @@ only. Named after the package, so two collections' `skimage` stay apart.
 
 ## Facts worth not rediscovering
 
-- skop's spec layer is **opspec**, a standard-library-only package kept in
-  `opspec/` and published separately. `skop._spec` only re-exports it;
-  `skop._adapt` takes planning from it and keeps execution. Where the two
+- The spec layer is **opspec**, a standard-library-only package kept in
+  `opspec/` and published separately. Import its names from it, never through
+  skop or oprunner; `oprunner._adapt` takes planning from it and keeps execution. Where the two
   differed, the decisions and reasons are in
   [opspec/docs/design/0003](opspec/docs/design/0003-reconciling-with-scikit-ops.md).
   opspec has its own [CLAUDE.md](opspec/CLAUDE.md): it never imports numpy.
 - Read a spec with `OpSpec.from_op(fn)`. `spec.outputs` are `OutputSpec`s,
   not names; boxes are `Role.boxes`; a plan says `uses_all_data`.
-- In a checkout, importing skop puts `opspec/src` first on `sys.path`, the
-  way `skop.host.INIT` puts `src` first. That is how a worker finds opspec:
-  the environments pin a scikit-ops that predates it.
-- `skop.discover()` returns `(specs, failures)`. `specs` is every op declared,
+- In a checkout, importing oprunner puts `opspec/src` and `ophelper/src` first
+  on `sys.path`, the way `oprunner.host.INIT` puts `oprunner/src` first, and an
+  op's own folder comes from the host (`origin`). That is how a worker finds
+  today's code: the environments pin an older scikit-ops.
+- `oprunner.discover()` returns `(specs, failures)`. `specs` is every op declared,
   including ones this interpreter could not run — a catalogue, because a front
   end must offer Cellpose before its environment exists. `failures` is op
   *modules that would not import*, which enforces the rule that heavy imports

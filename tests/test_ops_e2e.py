@@ -17,12 +17,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-import skop
+import oprunner
 
 
 @pytest.fixture(scope="module")
 def runner():
-    with skop.Runner() as r:
+    with oprunner.Runner() as r:
         yield r
 
 
@@ -573,8 +573,9 @@ def yolo_weights():
 
 @pytest.fixture(scope="module")
 def bus():
-    from ophelper.assets import file_from_url
     from skimage import io
+
+    from ophelper.assets import file_from_url
 
     return io.imread(file_from_url(BUS, "yolo/bus.jpg"))
 
@@ -659,6 +660,7 @@ def test_yolo_batch_size_does_not_change_the_answer(
 def check_masks(result, image, prompts) -> None:
     """Assertions every mask detector's output has to satisfy."""
     import numpy as np
+
     import ophelper.boxes
     import ophelper.masks
 

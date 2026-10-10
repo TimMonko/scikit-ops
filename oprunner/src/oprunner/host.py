@@ -1,8 +1,8 @@
-"""What a front end in another language asks skop for.
+"""What a front end in another language asks oprunner for.
 
 An in-process front end reads ``OpSpec`` as a Python object and calls
-``skop.plan`` directly. A front end in another language cannot: it reaches
-skop over Appose, so everything it needs has to be expressible as JSON. This
+``opspec.plan.plan`` directly. A front end in another language cannot: it reaches
+oprunner over Appose, so everything it needs has to be expressible as JSON. This
 module is that surface, and nothing else belongs in it.
 
 Three things live here:
@@ -12,11 +12,11 @@ Three things live here:
   rather than something each front end transcribes, so that changing how a
   worker is started changes one place instead of one place per language;
 * ``describe``, which is ``discover`` with its result flattened to JSON;
-* ``plan``, which is ``skop.plan`` reached by op name rather than by function
+* ``plan``, which is ``opspec.plan.plan`` reached by op name rather than by function
   object, so that the axis arithmetic is computed once here rather than
   reimplemented in every host language.
 
-Like the rest of skop's core this module is austere -- standard library only
+Like the rest of oprunner's core this module is austere -- standard library only
 -- because the service that answers these questions runs in the ``minimal``
 environment, and because ``discover`` importing an op module is the whole
 point: an op that will not load in a minimal environment must be reported,
@@ -45,7 +45,7 @@ CALL = "skop_invoke(task, module, function, kwargs, plans, origin)"
 # would fold a machine-specific path into the environment's identity, causing
 # a rebuild whenever the checkout moves.
 #
-# The insertion is at position 0, so a checkout shadows the copy of skop that
+# The insertion is at position 0, so a checkout shadows the copy of oprunner that
 # the environment installs. That is deliberate: a developer editing an op sees
 # the edit without bumping the pin every environment's identity depends on.
 # NB: MPLBACKEND is dropped because a worker inherits its caller's environment,
@@ -64,8 +64,8 @@ import sys
 os.environ.pop("MPLBACKEND", None)
 sys.path.insert(0, {root!r})
 import numpy  # NB: must precede the worker's I/O loop on Windows.
-import skop.worker
-skop_invoke = skop.worker.invoke
+import oprunner.worker
+skop_invoke = oprunner.worker.invoke
 """
 
 # Installed into the one service that answers metadata questions. It runs in
@@ -73,16 +73,16 @@ skop_invoke = skop.worker.invoke
 METADATA_INIT = """
 import sys
 sys.path.insert(0, {root!r})
-import skop.host
-skop_describe = skop.host.describe
-skop_plan = skop.host.plan
-skop_constants = skop.host.constants
+import oprunner.host
+skop_describe = oprunner.host.describe
+skop_plan = oprunner.host.plan
+skop_constants = oprunner.host.constants
 """
 
 # The same two scripts, appending rather than inserting.
 #
 # `root` is only worth putting first when it is a checkout, which is the case
-# the shadowing above exists for. When skop is installed normally, `root` is
+# the shadowing above exists for. When oprunner is installed normally, `root` is
 # the host's site-packages -- and putting *that* first hands the worker every
 # package the host has, built for the host's Python. A worker on a different
 # Python then fails at `import numpy`, before skop_invoke is ever defined, and
@@ -90,8 +90,8 @@ skop_constants = skop.host.constants
 #
 # Appending keeps the one case that still needs the path: envs/unseg-cv has no
 # pinned scikit-ops at all, because scikit-ops requires Python 3.10 and UNSEG's
-# pins 3.9, so it reaches skop through this path alone. Last on sys.path is
-# enough for that, and lets every environment that does install skop use its
+# pins 3.9, so it reaches oprunner through this path alone. Last on sys.path is
+# enough for that, and lets every environment that does install oprunner use its
 # own copy.
 INIT_APPEND = """
 import os
@@ -99,27 +99,27 @@ import sys
 os.environ.pop("MPLBACKEND", None)
 sys.path.append({root!r})
 import numpy  # NB: must precede the worker's I/O loop on Windows.
-import skop.worker
-skop_invoke = skop.worker.invoke
+import oprunner.worker
+skop_invoke = oprunner.worker.invoke
 """
 
 METADATA_INIT_APPEND = """
 import sys
 sys.path.append({root!r})
-import skop.host
-skop_describe = skop.host.describe
-skop_plan = skop.host.plan
-skop_constants = skop.host.constants
+import oprunner.host
+skop_describe = oprunner.host.describe
+skop_plan = oprunner.host.plan
+skop_constants = oprunner.host.constants
 """
 
 DESCRIBE = "skop_describe(package)"
 PLAN = "skop_plan(op, param, shape, axes, position, mapping, dispositions)"
 
 
-def is_checkout(root: "Path | str") -> bool:
+def is_checkout(root: Path | str) -> bool:
     """Whether *root* is a source tree rather than an install directory.
 
-    A checkout's ``root`` holds only skop, so putting it first on a worker's
+    A checkout's ``root`` holds only oprunner, so putting it first on a worker's
     ``sys.path`` shadows nothing else. An install's ``root`` is the host's
     site-packages, which holds everything -- see the note on ``INIT_APPEND``.
 
@@ -139,8 +139,8 @@ def is_checkout(root: "Path | str") -> bool:
     return root not in installed
 
 
-def init_script(root: "Path | str", metadata: bool = False) -> str:
-    """The init script for a worker, given where this skop lives.
+def init_script(root: Path | str, metadata: bool = False) -> str:
+    """The init script for a worker, given where this oprunner lives.
 
     Chooses between inserting and appending ``root``; see ``INIT_APPEND``.
     """
@@ -166,7 +166,7 @@ def constants() -> dict:
         "metadata_init": METADATA_INIT,
         # Additive: a host that only knows the two above keeps the behaviour
         # it had. One that can tell a checkout from an install should prefer
-        # these when skop is installed -- see the note on INIT_APPEND.
+        # these when oprunner is installed -- see the note on INIT_APPEND.
         "init_append": INIT_APPEND,
         "metadata_init_append": METADATA_INIT_APPEND,
         "describe": DESCRIBE,
@@ -220,7 +220,7 @@ def plan(
         param: Name of the parameter the array is destined for.
         shape: The array's shape.
         axes: What that array's axes actually are, one label per axis. A host
-            works this out for itself; skop does not guess. ``None`` in place
+            works this out for itself; oprunner does not guess. ``None`` in place
             of a label means that axis has no name.
 
             **Order matters, and it is numpy's**: last axis fastest-moving. A
@@ -230,7 +230,7 @@ def plan(
         position: Current position along each axis, keyed by axis name or
             index, for any axis being indexed down to a single plane.
         mapping: One input-axis index (or None) per declared slot, overriding
-            skop's own assignment.
+            oprunner's own assignment.
         dispositions: What to do with each leftover axis, keyed by axis index
             as a string or an int: ``"iterate"``, ``"select"`` or ``"pass"``.
 
@@ -253,7 +253,7 @@ def plan(
 def op_function(op: str) -> Any:
     """Resolve an op ID to the function it names.
 
-    The ID is opaque to a host, but not to skop: it is ``module:function``,
+    The ID is opaque to a host, but not to oprunner: it is ``module:function``,
     and this is the one place that says so.
     """
     module_name, _, function_name = op.partition(":")

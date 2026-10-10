@@ -181,7 +181,7 @@ the friendly path is fully automatic exactly when it is safe to be.
 ## Iteration runs in the worker
 
 The plan crosses the Appose boundary with the call, as `plans` in the task
-args, and `skop.worker.invoke` runs the loop. Doing it host-side would have
+args, and `oprunner.worker.invoke` runs the loop. Doing it host-side would have
 meant 41 tasks, 41 trips through shared memory, and 41 calls to
 `StarDist2D.from_pretrained`. This way it is one task and one encode of the
 whole stack, per-slice progress comes free through the existing `progress()`

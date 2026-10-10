@@ -18,7 +18,7 @@ from typing import Annotated
 import numpy as np
 import pytest
 
-import skop
+import oprunner
 from opspec.op import Choices, OpSpec, ParamsFor, op
 from opspec.runtime import progress
 from skop.ops.edges import scharr, sobel, unsharp_mask
@@ -31,7 +31,7 @@ def _apply(
     step_args: Annotated[dict | None, ParamsFor("step", binds="image")] = None,
 ) -> np.ndarray:
     progress("Applying")
-    return skop.run(step, image=image, **(step_args or {}))
+    return oprunner.run(step, image=image, **(step_args or {}))
 
 
 # -- the spec ------------------------------------------------------------
@@ -77,7 +77,7 @@ def test_binds_accepts_a_sequence():
 
 @pytest.fixture(scope="module")
 def runner():
-    with skop.Runner() as r:
+    with oprunner.Runner() as r:
         yield r
 
 
@@ -137,6 +137,6 @@ def test_calling_a_workflow_directly_needs_no_runner():
     assert OpSpec.from_op(_apply).is_workflow
     # Not actually executed here -- that would build an environment -- but the
     # ambient lookup must be absent outside a run, so run() picks the default.
-    from skop.runner import _current
+    from oprunner.runner import _current
 
     assert _current.get() is None

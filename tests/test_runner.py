@@ -9,13 +9,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-import skop
+import oprunner
+import opspec.plan
 from skop.ops import toy
 
 
 @pytest.fixture(scope="module")
 def runner():
-    with skop.Runner() as r:
+    with oprunner.Runner() as r:
         yield r
 
 
@@ -120,7 +121,7 @@ def test_build_subscribers_are_handed_to_the_builder(monkeypatch):
 
     monkeypatch.setattr(appose, "pixi", lambda _config: FakeBuilder())
 
-    r = skop.Runner()
+    r = oprunner.Runner()
     r.subscribe_build_progress(lambda title, current, maximum: None)
     r.subscribe_build_output(lambda text: None)
     r.subscribe_build_error(lambda text: None)
@@ -180,7 +181,7 @@ def test_an_unusable_input_is_refused_before_dispatch(runner):
 def test_a_mismatched_axis_name_runs_anyway_and_says_so(runner):
     # The op wanted y and x; it is being given z and x. That is the user's
     # call to make, so it runs -- with the misalignment recorded on the plan.
-    plan = skop.plan(toy.quadrants, "image", np.zeros((3, 6)), list("zx"))
+    plan = opspec.plan.plan(toy.quadrants, "image", np.zeros((3, 6)), list("zx"))
     assert plan.warnings == ("y is being fed the z axis",)
 
     labels = runner.run(toy.quadrants, image=np.zeros((3, 6)), plans={"image": plan})
@@ -189,13 +190,13 @@ def test_a_mismatched_axis_name_runs_anyway_and_says_so(runner):
 
 def test_a_chosen_plan_is_obeyed(runner):
     stack = np.arange(3 * 8 * 6, dtype=np.float32).reshape(3, 8, 6)
-    plan = skop.plan(
+    plan = opspec.plan.plan(
         toy.quadrants,
         "image",
         stack,
         list("zyx"),
         position={"z": 2},
-        dispositions={0: skop.SELECT},
+        dispositions={0: opspec.plan.SELECT},
     )
     assert not plan.uses_all_data
 
@@ -234,8 +235,9 @@ def _import_from(folder, name, source):
 
 
 def test_a_module_s_origin_is_the_folder_it_imports_from(tmp_path):
+    from oprunner.runner import _origin
+
     import skop.ops.smooth  # noqa: F401  (imported, so it has an origin)
-    from skop.runner import _origin
 
     package = tmp_path / "pkg"
     package.mkdir()
@@ -250,7 +252,7 @@ def test_an_environment_beside_the_op_comes_first(tmp_path):
     (tmp_path / "envs" / "skimage").mkdir(parents=True)
     (tmp_path / "envs" / "skimage" / "pixi.toml").write_text("[workspace]\n")
     _import_from(tmp_path, "op_beside_envs_test", WILDCAT)
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         mine = runner._env_for("skimage", "op_beside_envs_test")
         ours = runner._env_for("skimage", "skop.ops.smooth")
     assert mine.config == tmp_path.resolve() / "envs" / "skimage" / "pixi.toml"
@@ -266,7 +268,7 @@ def test_an_environment_is_named_after_its_package(tmp_path):
     (tmp_path / "envs" / "skimage").mkdir(parents=True)
     (tmp_path / "envs" / "skimage" / "pixi.toml").write_text("[workspace]\n")
     _import_from(tmp_path, "op_in_a_package_test", WILDCAT)
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         env = runner._env_for("skimage", "op_in_a_package_test")
     assert env.name == "my-ops--skimage"
 
@@ -274,7 +276,7 @@ def test_an_environment_is_named_after_its_package(tmp_path):
 def test_a_runner_says_which_environment_an_op_runs_in():
     from skop.ops.smooth import gaussian
 
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         env = runner.env_for(gaussian)
     assert (env.id, env.name) == ("skimage", "scikit-ops--skimage")
     assert env.config.name == "pixi.toml"
@@ -283,7 +285,7 @@ def test_a_runner_says_which_environment_an_op_runs_in():
 @pytest.mark.env("skimage")
 def test_an_op_outside_scikit_ops_runs_in_an_environment(tmp_path):
     module = _import_from(tmp_path, "wildcat_op_test", WILDCAT)
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         result = runner.run(module.plus_one, image=np.zeros(3))
     assert list(result) == [1, 1, 1]
 
@@ -320,7 +322,7 @@ def _messages(events):
 def test_an_op_on_the_host_reports_through_opspec_runtime(tmp_path):
     module = _import_from(tmp_path, "opspec_runtime_host_test", FROM_OPSPEC)
     events = []
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         runner.run(module.announce, image=np.zeros(2), on_progress=events.append)
     assert _messages(events) == ["On the host"]
 
@@ -329,7 +331,7 @@ def test_an_op_on_the_host_reports_through_opspec_runtime(tmp_path):
 def test_an_op_in_a_worker_reports_through_opspec_runtime(tmp_path):
     module = _import_from(tmp_path, "opspec_runtime_worker_test", FROM_OPSPEC)
     events = []
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         result = runner.run(module.counts, image=np.zeros(2), on_progress=events.append)
     assert list(result) == [0, 0]
     assert _messages(events)[-3:] == ["Step 1 of 3", "Step 2 of 3", "Step 3 of 3"]
@@ -339,7 +341,7 @@ def test_an_op_in_a_worker_reports_through_opspec_runtime(tmp_path):
 def test_a_workflow_s_run_goes_through_the_runner(tmp_path):
     module = _import_from(tmp_path, "opspec_runtime_workflow_test", FROM_OPSPEC)
     events, started = [], []
-    with skop.Runner() as runner:
+    with oprunner.Runner() as runner:
         runner.run(
             module.two_steps,
             image=np.zeros(2),

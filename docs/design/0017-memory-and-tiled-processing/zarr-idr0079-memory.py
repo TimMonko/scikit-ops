@@ -50,6 +50,7 @@ from pathlib import Path
 
 import zarr
 
+import oprunner
 import skop
 from skop.ops.edges import frangi
 from skop.ops.smooth import gaussian
@@ -156,7 +157,7 @@ with tempfile.TemporaryDirectory() as tmp:
         else:
             # closed on the way out: a live worker otherwise keeps Python
             # from exiting
-            with skop.Runner() as runner:
+            with oprunner.Runner() as runner:
                 out = runner.run(fn, image=z, memory=args.memory, **params)
         print(f"OK    {type(out).__name__} {out.shape} {out.dtype}")
     except Exception as e:  # noqa: BLE001 -- a probe, the failure is the result

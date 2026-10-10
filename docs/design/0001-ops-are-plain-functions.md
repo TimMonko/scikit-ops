@@ -24,7 +24,7 @@ the function as discoverable; it does not wrap, replace or proxy the function.
 ```python
 toy.add(2, 3)                          # mode A/B: just a function
 
-with skop.Runner() as runner:
+with oprunner.Runner() as runner:
     runner.run(toy.add, a=2, b=3)      # mode C/D: same function, own process
 ```
 

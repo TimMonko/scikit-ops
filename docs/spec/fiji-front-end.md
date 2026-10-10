@@ -5,7 +5,7 @@ environment manager and the update site are what is left. The plan for
 `skop-fiji`, the second front end, written against what
 [front-ends.md](front-ends.md) says the boundary is and what
 [skop-napari](https://github.com/apposed/skop-napari) learned building the
-first one. The P0 half lives here — `skop.host`, and `to_dict`/`from_dict` on
+first one. The P0 half lives here — `oprunner.host`, and `to_dict`/`from_dict` on
 `OpSpec`; the Java half lives in
 [skop-fiji](https://github.com/apposed/skop-fiji).
 
@@ -63,7 +63,7 @@ inplace-form ops. A Java `ShmImg` becomes an `NDArray` that goes straight into
 the worker's task inputs: one block, no copies, and the worker sees exactly
 what `runner.py` would have handed it.
 
-The two jobs that must stay in Python are `discover()` and `skop.plan()`. Both
+The two jobs that must stay in Python are `discover()` and `opspec.plan.plan()`. Both
 are metadata-only, so both run as tasks in one long-lived service in the
 **`minimal`** environment. That is the "`OpSpec` over the wire" item
 [front-ends.md](front-ends.md) lists as unresolved, and this is what resolves
@@ -71,7 +71,7 @@ it.
 
 The risk of B is duplication: `_INIT`, the `_CALL` template and the encoding
 rules now exist in two languages. Keep the strings in skop and let Java read
-them (`skop.host` constants delivered alongside the specs) rather than
+them (`oprunner.host` constants delivered alongside the specs) rather than
 transcribing them into Java literals.
 
 ## What scikit-ops must gain first
@@ -82,7 +82,7 @@ None of this is Fiji-shaped; it is the serialized half of the contract that
 1. **`OpSpec` as JSON.** `to_dict`/`from_dict` covering `name`, `module`,
    `function`, `env`, `form`, `doc`, and every `ParamSpec` and `OutputSpec`
    field — including `ui` hints, `role`, `axes`, `direction` and defaults.
-   Exposed as a `skop.host:describe()` task returning the whole `discover()`
+   Exposed as a `oprunner.host:describe()` task returning the whole `discover()`
    result, failures included.
 2. **A wire vocabulary for `ParamSpec.type`.** It is a live Python type object
    today. Java needs names: `int`, `float`, `str`, `bool`, `ndarray`, `path`,
@@ -323,8 +323,8 @@ wire/                the OpSpec JSON reading
 ## Still open
 
 - ~~Whether `_INIT` and `_CALL` are delivered to Java as data or
-  transcribed.~~ Settled: data. They live in `skop.host` and are fetched by
-  `skop.host:constants()`, which `SkopRunner` calls once. The one thing Java
+  transcribed.~~ Settled: data. They live in `oprunner.host` and are fetched by
+  `oprunner.host:constants()`, which `SkopRunner` calls once. The one thing Java
   still transcribes is a three-line bootstrap, because reading data out of
   skop needs a service and starting a service needs a script.
 - ~~What an op with a `MasksData` output offers by default: the ROI Manager, a

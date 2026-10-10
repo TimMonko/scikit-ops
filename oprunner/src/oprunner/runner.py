@@ -1,4 +1,4 @@
-"""The host-side half of skop: build environments and run ops in them.
+"""The host-side half of oprunner: build environments and run ops in them.
 
 The host never imports an op's dependencies. It imports the op module only to
 read its signature -- which is cheap, because ops keep heavy imports inside
@@ -38,7 +38,7 @@ from .host import init_script as _init_script_for
 if TYPE_CHECKING:
     from typing import Self
 
-# Note: _CALL and _INIT live in skop.host rather than here, because an
+# Note: _CALL and _INIT live in oprunner.host rather than here, because an
 # out-of-process host needs them too and there must be exactly one copy of
 # them. See docs/spec/fiji-front-end.md.
 
@@ -96,7 +96,7 @@ class _HostTask:
 
 
 class _Ambient:
-    """The runner a workflow's own ``skop.run`` calls should go through.
+    """The runner a workflow's own ``opspec.runtime.run`` calls should go through.
 
     A workflow does not take a runner as a parameter, for the same reason an
     op does not take a progress reporter as one (design 0001): it would make
@@ -124,30 +124,29 @@ class _Ambient:
 
 
 _current: contextvars.ContextVar[_Ambient | None] = contextvars.ContextVar(
-    "skop_runner", default=None
+    "oprunner", default=None
 )
 
 
 def _default_root() -> Path:
-    """The directory holding the ``skop`` package."""
+    """The directory holding the ``oprunner`` package: a checkout's
+    ``oprunner/src``, or site-packages."""
     return Path(__file__).resolve().parent.parent
 
 
-def _default_envs_dir(root: Path) -> Path:
-    """Where the ``envs/<env-id>/pixi.toml`` recipes live.
+def _default_envs_dir(root: Path) -> Path | None:
+    """Environments asked for by ID alone, with no op to find them beside.
 
-    Two places, because there are two ways to have skop. A checkout keeps them
-    beside ``src``, where they are edited. An install has no tree, so they ride
-    inside the package, put there by ``force-include`` in pyproject.toml.
+    An op's environment is found beside the op's own files (``_env_for``), so
+    this is only for calls such as ``ensure_environment("cupy")``. In a
+    scikit-ops checkout it is the repository's ``envs/``: oprunner sits in
+    ``oprunner/src``, two folders below. Elsewhere there is none.
 
-    The checkout wins when both exist -- the same rule ``host.INIT`` applies to
-    the code, so an edited recipe takes effect without a reinstall. Falls back
-    to the packaged path, so a failure names where an install actually looked.
+    A stopgap: once collections say where their environments are, a runner
+    needs no default.
     """
-    checkout = root.parent / "envs"
-    if checkout.is_dir():
-        return checkout
-    return Path(__file__).resolve().parent / "envs"
+    checkout = root.parent.parent / "envs"
+    return checkout if checkout.is_dir() else None
 
 
 class Runner:
@@ -208,6 +207,11 @@ class Runner:
     # -- environments ----------------------------------------------------
 
     def env_config(self, env_id: str) -> Path:
+        if self.envs_dir is None:
+            raise FileNotFoundError(
+                f"No environment '{env_id}': this runner has no envs_dir. "
+                "Pass Runner(envs_dir=...), or ask about an op with env_for(op)."
+            )
         config = self.envs_dir / env_id / "pixi.toml"
         if not config.exists():
             known = ", ".join(sorted(self.env_ids())) or "none"
@@ -217,7 +221,7 @@ class Runner:
         return config
 
     def env_ids(self) -> Iterator[str]:
-        if not self.envs_dir.is_dir():
+        if self.envs_dir is None or not self.envs_dir.is_dir():
             return
         for child in sorted(self.envs_dir.iterdir()):
             if (child / "pixi.toml").exists():
@@ -427,14 +431,14 @@ class Runner:
             variant: Optional named pixi sub-environment (e.g. ``"cuda"``).
             axes: What each array argument actually is, as ``{"image":
                 list("zyx")}`` or ``{"image": ("pln", "row", "col")}``. Naming
-                them lets skop fit them to what the op consumes -- transposing,
+                them lets oprunner fit them to what the op consumes -- transposing,
                 or iterating a 2-D op over a stack. An axis label is any
                 string, so ``("lifetime", "y", "x")`` works as well as the
                 canonical letters, and known synonyms resolve to them.
                 Unnamed arrays are passed through untouched.
-            plans: Explicit ``AdaptationPlan``s, from ``skop.plan``, for
+            plans: Explicit ``AdaptationPlan``s, from ``opspec.plan.plan``, for
                 callers making the per-axis decisions themselves. Overrides
-                ``axes`` for the parameters it names. The plan skop builds on
+                ``axes`` for the parameters it names. The plan oprunner builds on
                 its own never discards data, so supply one whenever that is
                 what you actually want.
             position: Current position along each axis, used only when a
@@ -446,13 +450,13 @@ class Runner:
             memory: A memory budget for the op, as bytes or a size such as
                 ``"1G"``. An op declaring tiling hints (``@op(tile=...,
                 peak_memory=...)``) whose input would need more is run tile by
-                tile, each within the budget; see ``skop._tiling``. Left out,
+                tile, each within the budget; see ``oprunner._tiling``. Left out,
                 the budget is 85% of the memory available right now, cgroup
-                limits included (``skop._tiling.default_budget``); ``"off"``
+                limits included (``oprunner._tiling.default_budget``); ``"off"``
                 never tiles. An op declaring no hints always runs whole. A
                 shortcut for ``tiler=Tiler(memory)``.
             tiler: The caller's tiling choices -- budget, overlap, tile size
-                -- as a ``skop.Tiler``; it takes precedence over ``memory``.
+                -- as a ``oprunner.Tiler``; it takes precedence over ``memory``.
                 ``Tiler.off()`` never tiles. For a workflow, it applies to
                 the ops the workflow runs.
             out: Where an op's single array result is written, tiled or not:

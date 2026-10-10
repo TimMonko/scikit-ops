@@ -200,7 +200,7 @@ same thing: tiling changes their result too, and the merge softens it.
    else running is counted -- or of the room left in a memory-limited
    cgroup (`systemd-run -p MemoryMax=`, a Slurm job, a container), whichever
    is less. A cgroup's limit is the one that kills, and the machine's own
-   figure knows nothing of it. Built: `skop._tiling.default_budget`. VRAM,
+   figure knows nothing of it. Built: `oprunner._tiling.default_budget`. VRAM,
    for a cupy op, is not handled yet.
 
    The budget covers everything alive while a tile runs: the op's peak,
@@ -219,7 +219,7 @@ same thing: tiling changes their result too, and the merge softens it.
 
 ## The Tiler: the caller's choices
 
-Built: `skop.Tiler`, and `Runner.run(..., tiler=)`. `memory=` is a
+Built: `oprunner.Tiler`, and `Runner.run(..., tiler=)`. `memory=` is a
 shortcut for `tiler=Tiler(memory)`.
 
 The op declares hints; the caller makes choices. Rather than one keyword
@@ -248,11 +248,11 @@ where the result goes, which matters whether or not the run is tiled.
 
 A Tiler holds settings. `tiler.plan(op, args)` turns them into a `TilePlan`
 for this input: "8 tiles of 142 x 394 x 396, overlap 8". This is how axes
-already work: `skop.plan` makes an `AdaptationPlan` that a front end shows
+already work: `opspec.plan.plan` makes an `AdaptationPlan` that a front end shows
 and the user edits, and the run follows it (0006).
 
 The same `tiler.plan` gives a GUI its preview and the runner its tiles, so
-the two always agree. It replaces today's `skop.runner.tile_plan`.
+the two always agree. It replaces today's `oprunner.runner.tile_plan`.
 
 ### In a GUI
 

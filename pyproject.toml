@@ -98,6 +98,12 @@ opspec = { path = "opspec", editable = true }
 ophelper = { path = "ophelper", editable = true }
 oprunner = { path = "oprunner", editable = true }
 
+# Says "the package skop.ops is a collection of ops, called scikit-ops", so a
+# front end lists it without being told: it lists every installed package in
+# this group.
+[project.entry-points."opspec.collections"]
+scikit-ops = "skop.ops"
+
 [project.urls]
 homepage = "https://github.com/apposed/scikit-ops"
 documentation = "https://github.com/apposed/scikit-ops/blob/main/README.md"

@@ -19,6 +19,7 @@ ophelper/                 helpers for writing ops, its own package: boxes, masks
 envs/<env-id>/pixi.toml   environment definitions, shared between ops
 pixi/examples/            the host for notebooks and interactive tests
 notebooks/                narrative examples, outputs committed
+website/                  the docs website: one Sphinx site, built by Read the Docs
 interactive_tests/        runnable scripts that open a viewer
 test_images/              gitignored -- large TIFFs, not in the repo
 ```
@@ -73,6 +74,7 @@ uv run pytest                # fast tests, skop's and opspec's; skips anything n
 uv run pytest --build-envs   # builds missing op environments; slow first time
 uv run ruff check --fix && uv run ruff format
 uv run jupyter lab           # notebooks; or select .venv as the kernel
+website/serve.sh             # the docs website, at http://127.0.0.1:8000
 ```
 
 Never hand-merge `uv.lock`. Restore it, rebase, and regenerate with `uv sync`.

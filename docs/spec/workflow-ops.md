@@ -230,11 +230,109 @@ call another workflow.
     a "can this run here?" preflight, so a GUI can grey out rather than fail after
     four minutes of pixi solving.
 
+## Extensible choices: slot kinds
+
+*Proposed, not built.* `Choices` is a list the workflow's author writes by hand,
+and that is right for "these are tested". It does not let anyone else add an
+option without editing the workflow. A third-party collection
+([0021](../design/0021-op-collections.md)) with its own deconvolver has no way to
+appear in `deconvolve_with_psf`'s combo box.
+
+### Three things that must not be confused
+
+| | What it is | Who can repeat it |
+| --- | --- | --- |
+| **Identity** | `module:function`, qualified by its collection | nobody; it cannot clash |
+| **Name** | what the op is called, such as `deconvolve.richardson_lucy`; relative to its collection's package | anyone; two collections may share one |
+| **Kind** | the role the op can fill, such as `deconvolver` | many ops, deliberately |
+
+A slot is filled by a **kind**, not by a name. A name says *how*: `richardson_lucy`
+and `richardson_lucy_cupy` differ in name and are interchangeable in a workflow.
+A workflow slot wants *any deconvolver*, which a name-equality slot would shrink
+to *another implementation of this exact algorithm*. A namespace is no better:
+`deconvolve.*` may hold ops that do not deconvolve, for the reason
+[0016](../design/0016-choosing-an-environment.md) gives for environments.
+
+Since [Roles are not invariant under use](#notes-we-dont-want-to-lose), a kind
+cannot be inferred from a signature. The author of the op declares it:
+
+```python
+@op(env="richardson-lucy-cupy", kind="deconvolver")      # illustrative spelling
+def richardson_lucy_cupy(image, psf, num_iters=50): ...
+
+deconvolver: Annotated[
+    Callable,
+    Choices(cpu=richardson_lucy, gpu=richardson_lucy_cupy, open="deconvolver"),
+]
+```
+
+The hand-written options are unchanged: the tested menu. `open` adds every op of
+that kind that discovery found.
+
+### The check
+
+Agreeing on a kind does not make two signatures compatible; consideration 5
+leaves that to discipline, and with strangers' ops discipline is not enough. The
+spec is data, so compatibility can be checked: the first hand-written choice is
+the **prototype**, and a candidate must accept the same parameters, by name and
+kind and type, once the ones the workflow binds (`ParamsFor(..., binds=...)`) are
+set aside. A candidate that does not is still listed, greyed, with the reason in
+one line. It is never silently dropped, because "where is my op?" is a worse
+question than "why can't I pick it?".
+
+### What a front end shows
+
+- **Tested** options first: the hand-written list, as today.
+- **Installed, untested** options second, from `open`. This is the escape
+  hatch of considerations 7 and 8 drawn on the screen. An installed option that
+  works is promoted by adding it to `Choices`, where the change is reviewed.
+- A label is the op's name. When two options share one, the collection is added
+  to tell them apart: `richardson_lucy (skop)` and `richardson_lucy (curtisops)`.
+- **Nothing is picked automatically.** Two candidates are two entries and a
+  person chooses. There is no priority and no matcher, which is the deliberate
+  difference from SciJava Ops, where the argument types must choose because
+  nobody is there to. A matcher can still be layered on later, and is not needed
+  to make duplicates legal.
+
+A script is unaffected. It passes a function, a function has an identity, and
+neither names nor kinds are consulted.
+
+### Recording what ran
+
+SciJava Ops records the tree of dependencies it resolved, which is what makes a
+run reproducible. A workflow should do the same: a run notes the
+`module:function` identity chosen for every slot, and a saved recipe is built
+from those and not from names or labels, which can change.
+
+### What it needs from collections
+
+An option from another collection has to be importable on the host, and the
+runner has to find its environment recipe and put its package on the worker's
+path. That is what the `Collection` descriptor in 0021 carries, so this does not
+stand without it.
+
+### Not decided
+
+- **Who owns the vocabulary.** `deconvolver` means something because a workflow
+  and an op both use it. With one author that is a convention; with many, two
+  collections can mean different things by it, or two words for one thing. A
+  registry, a kind declared by the workflow's own collection and imported by
+  others, or plain convention are all possible, and the third is the cheapest
+  until it fails.
+- **More than one kind per op, and kinds that include others** (a "box
+  detector" that is also a "detector").
+- **Whether a name is a default kind**, so that an op with no `kind` can fill a
+  slot named after it. This would give algorithm-granular slots for free, at the
+  cost of the name doing two jobs.
+- **Name stability.** A name taken from the module path changes when a file
+  moves. An explicit `name=` that overrides the path would fix that, and belongs
+  with the namespacing question left open in 0021.
+
 ## Deliberately not designed yet
 
 How the workflow marker is actually spelled, and whether it is inferred from a
-missing `env`. Automatic selection (`backend="auto"`), capability tags, matching,
-nested choosers where picking one op reveals its own parameters, saving a
+missing `env`. Automatic selection (`backend="auto"`), matching
+(capability tags are sketched in *Extensible choices*), nested choosers where picking one op reveals its own parameters, saving a
 configured workflow as a re-runnable recipe, and whether a workflow may call
 another workflow.
 

@@ -49,6 +49,7 @@ load-bearing.
 | [0018](design/0018-explicit-array-carriers.md) | Every op states its array carrier | no |
 | [0019](design/0019-model-residency.md) | How long a loaded model stays resident | no |
 | [0020](design/0020-reproducible-environments.md) | Committed locks, so a rebuild reproduces | no |
+| [0021](design/0021-op-collections.md) | Registering collections of ops, skop's own included | no |
 
 ## opspec
 

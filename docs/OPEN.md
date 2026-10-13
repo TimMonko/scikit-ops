@@ -14,6 +14,17 @@ Ask "what else to do" in any session and this file is the answer.
 
 ---
 
+## GPU memory across workers
+
+**Status:** open.
+
+Each environment is its own worker process with its own GPU pool (CuPy's,
+PyTorch's cache), so workers compete for one GPU, and more collections mean
+more workers. `Runner.release()` gives memory back by hand; nothing
+coordinates them.
+
+---
+
 ## Environments are isolated but not reproducible
 
 **Status:** open — see [design 0020](design/0020-reproducible-environments.md).

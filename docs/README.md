@@ -50,6 +50,7 @@ load-bearing.
 | [0019](design/0019-model-residency.md) | How long a loaded model stays resident | no |
 | [0020](design/0020-reproducible-environments.md) | Committed locks, so a rebuild reproduces | no |
 | [0021](design/0021-op-collections.md) | Registering collections of ops, skop's own included | no |
+| [0022](design/0022-op-collections-built.md) | Ops from other packages: what is built, beside 0021 | part |
 
 ## opspec
 

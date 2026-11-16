@@ -27,6 +27,18 @@ It runs in your current environment, so the op's dependencies have to be
 installed there. No worker, no other process, no thread: set a breakpoint and
 step through it, or test it like any other function.
 
+To call it here but with the runner's options -- `axes`, `on_progress`,
+`out` -- use `InProcess`, which has the same `run` as `Runner` and no
+environments:
+
+```python
+from oprunner import InProcess
+
+labels = InProcess().run(stardist2d_fluo, image=stack, axes={"image": list("zyx")})
+```
+
+It does not tile; `memory` or a `Tiler` is refused.
+
 ## Options to `run`
 
 `run` takes the op's own arguments, and these as well. They say how to run

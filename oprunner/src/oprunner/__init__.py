@@ -28,9 +28,10 @@ for _package in ("opspec", "ophelper"):
     if (_checkout / _package).is_dir() and str(_checkout) not in sys.path:
         sys.path.insert(0, str(_checkout))
 
-__all__ = ["Runner", "Tiler", "discover", "run"]
+__all__ = ["InProcess", "Runner", "Tiler", "discover", "run"]
 
 _LAZY = {
+    "InProcess": "runner",
     "Runner": "runner",
     "run": "runner",
     "discover": "discovery",

@@ -667,6 +667,88 @@ task.outputs['released'] = True
         self.close()
 
 
+class InProcess:
+    """Run ops in this process, as a ``Runner`` would run them in a worker.
+
+    For callers that want the runner protocol -- ``run(fn, args, **options)``
+    -- without environments: tests, a script whose interpreter already has
+    the op's dependencies, a recorder replaying a step where it stands. The
+    op is called here, with the same treatment a worker gives it:
+
+    - arguments are checked against the op's spec, and array-likes the op
+      wants as numpy are read into numpy;
+    - ``axes`` and ``plans`` adapt arrays exactly as in a worker (transpose,
+      or loop a 2-D op over a stack);
+    - the op's ``opspec.runtime.progress()`` and ``cancel_requested()`` reach
+      ``on_progress`` and the task handed to ``on_start``;
+    - ops it calls with ``opspec.runtime.run`` go through the runner bound
+      around this call, if any, else through this one, and report to the
+      same task;
+    - ``out`` receives a single array result.
+
+    It does not tile: an op too big for memory needs a ``Runner``, so
+    ``memory`` or ``tiler`` other than off is refused rather than ignored.
+    An op's ``env`` is not consulted; what the op imports must be importable
+    here.
+    """
+
+    def run(
+        self,
+        fn: Callable,
+        args: dict | None = None,
+        *,
+        variant: str | None = None,
+        axes: dict[str, str] | None = None,
+        plans: dict[str, _adapt.AdaptationPlan] | None = None,
+        position: dict[str, int] | None = None,
+        on_progress: Callable[[Any], None] | None = None,
+        on_start: Callable[[Any], None] | None = None,
+        memory: int | str | None = None,
+        tiler: _tiling.Tiler | None = None,
+        out: Any = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Call *fn* here and return its result; options as ``Runner.run``.
+
+        ``variant`` names an environment variant, which has no meaning in this
+        process; it is accepted so a caller can pass the same options to
+        either runner.
+        """
+        if (memory is not None and memory != "off") or (
+            tiler is not None and tiler.enabled
+        ):
+            raise ValueError(
+                "InProcess does not tile; run the op with oprunner.Runner "
+                "to fit it to memory"
+            )
+        spec = OpSpec.from_op(fn)
+        call_args = dict(args or {})
+        call_args.update(kwargs)
+        _validate(spec, call_args)
+        call_args = _to_declared(spec, call_args)
+        # Unlike Runner, axes and plans apply to an op with no env too: here
+        # it is called the same way whichever it is, and an op with no env
+        # is not always a workflow (a plain host-side op has none either).
+        adaptations = _adaptations(fn, call_args, axes, plans, position)
+
+        task = _HostTask(on_progress)
+        if on_start is not None:
+            on_start(task)
+        reporting = bind_task(task)
+        # Ops this one calls go where a Runner's workflow's calls go: through
+        # the runner bound around this call, or this one, with this call's
+        # progress and cancel.
+        here = _Ambient(bound_runner() or self, task)
+        ambient = _current.set(here)
+        sub_ops = bind_runner(here)
+        try:
+            return _into(out, _adapt.execute(spec, fn, call_args, adaptations))
+        finally:
+            unbind_runner(sub_ops)
+            _current.reset(ambient)
+            unbind_task(reporting)
+
+
 def _validate(spec: OpSpec, args: dict) -> None:
     known = {p.name for p in spec.params}
     unknown = set(args) - known

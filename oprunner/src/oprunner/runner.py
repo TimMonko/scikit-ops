@@ -26,7 +26,13 @@ import appose
 import numpy as np
 
 from opspec.op import FUNCTION, OpSpec, _strip
-from opspec.runtime import bind_runner, bind_task, unbind_runner, unbind_task
+from opspec.runtime import (
+    bind_runner,
+    bind_task,
+    bound_runner,
+    unbind_runner,
+    unbind_task,
+)
 from opspec.tiling import TilePlan
 from opspec.types import Array
 
@@ -106,8 +112,9 @@ class _Ambient:
     """
 
     def __init__(
-        self, runner: Runner, task: _HostTask, tiler: _tiling.Tiler | None = None
+        self, runner: Any, task: _HostTask, tiler: _tiling.Tiler | None = None
     ) -> None:
+        # A Runner, or any runner bound around one (anything with ``run``).
         self._runner = runner
         self._task = task
         self._tiler = tiler
@@ -585,12 +592,19 @@ class Runner:
         on_start: Callable[[Any], None] | None,
         tiler: _tiling.Tiler | None = None,
     ) -> Any:
-        """Call a workflow in this process, with this runner made ambient."""
+        """Call a workflow in this process, with this runner made ambient.
+
+        The ops the workflow calls go through the runner already bound
+        around this call, if there is one -- a recorder wrapping this runner,
+        or the workflow that called this one -- so the outermost runner sees
+        every call. With none bound they go through this runner. Either way
+        they carry this call's progress, cancel and tiler.
+        """
         task = _HostTask(on_progress)
         if on_start is not None:
             on_start(task)
         reporting = bind_task(task)
-        here = _Ambient(self, task, tiler)
+        here = _Ambient(bound_runner() or self, task, tiler)
         ambient = _current.set(here)
         # opspec.runtime.run goes through this runner too.
         sub_ops = bind_runner(here)

@@ -15,6 +15,7 @@ __all__ = [
     "Task",
     "bind_runner",
     "bind_task",
+    "bound_runner",
     "cancel_requested",
     "progress",
     "run",
@@ -84,3 +85,13 @@ def bind_runner(runner: Any) -> Token:
 
 def unbind_runner(token: Token) -> None:
     _runner.reset(token)
+
+
+def bound_runner() -> Any:
+    """For a runner: the runner ``run`` goes through now, or None.
+
+    A runner about to bind itself asks this first, so it can send nested
+    calls through a runner already bound around it -- a recorder, say --
+    instead of past it.
+    """
+    return _runner.get()

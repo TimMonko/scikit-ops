@@ -32,6 +32,11 @@ A runner plugs in with `bind_task(task)` and `bind_runner(runner)`, each
 undone with the token it returns. A task has `update(message, current,
 maximum)` and `cancel_requested`, as an Appose task does.
 
+Runners nest: a recorder or a cache wraps a runner and binds itself. A
+runner about to bind itself for a workflow asks `bound_runner()` first and
+sends the workflow's calls through what is already bound, so the outermost
+runner sees every call, not just the first.
+
 ## Consequences
 
 - A collection of ops depends on opspec alone, and any runner can run it.

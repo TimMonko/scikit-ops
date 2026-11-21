@@ -264,18 +264,25 @@ class Runner:
         """Whether the built environment matches its definition.
 
         One of ``"ready"``, ``"stale"`` or ``"missing"``. Answered from
-        the two files, without building anything, so it costs nothing to ask.
+        the files on disk, without building anything, so it costs nothing to ask.
 
-        Appose records the full text of the pixi.toml it built from, in
-        ``appose.json`` beside the environment. Comparing that against the
-        definition in ``envs/<env_id>/pixi.toml`` says whether the environment
-        anyone is about to run in is the one currently described.
+        Appose records what it built from in ``appose.json`` beside the
+        environment, and its builder's ``status()`` compares all of that
+        against what it would build now: the text of ``envs/<env_id>/pixi.toml``,
+        but also the appose it adds for the worker, so that a change of Appose
+        version reads as stale here, just as it rebuilds there.
 
         Worth having because the failure it catches is silent. An environment
         built before a fix stays built, keeps running, and reports nothing --
         which is how a stack can be missing CUDA for months while every run
         appears to succeed.
         """
+        builder = self._builder(env_id)
+        if hasattr(builder, "status"):
+            status = builder.status().name
+            return {"CURRENT": "ready", "MISSING": "missing"}.get(status, "stale")
+
+        # NB: Appose before 0.13 has no status(), so compare the text alone.
         config = self.env_config(env_id)
         record = self.env_dir(env_id) / "appose.json"
         if not record.exists():
@@ -332,6 +339,10 @@ class Runner:
         report(f"{env_id}: ready")
         return env
 
+    def _builder(self, env_id: str) -> Any:
+        """The Appose builder for *env_id*, as yet without subscribers."""
+        return appose.pixi(self.env_config(env_id)).name(f"skop-{env_id}")
+
     def environment(self, env_id: str, variant: str | None = None) -> Any:
         """Build (or reuse) the Appose environment for an env ID.
 
@@ -343,8 +354,7 @@ class Runner:
         if key in self._envs:
             return self._envs[key]
 
-        config = self.env_config(env_id)
-        builder = appose.pixi(config).name(f"skop-{env_id}")
+        builder = self._builder(env_id)
         for progress_subscriber in self._build_progress:
             builder = builder.subscribe_progress(progress_subscriber)
         for output_subscriber in self._build_output:

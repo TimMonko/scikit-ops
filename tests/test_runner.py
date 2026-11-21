@@ -207,3 +207,35 @@ def test_unadapted_arrays_are_untouched(runner):
     # Saying nothing about axes means the op sees exactly what was passed.
     image = np.ones((2, 3, 4), dtype=np.float32)
     assert runner.run(toy.scale, image=image, factor=2.0).scaled.shape == (2, 3, 4)
+
+
+@pytest.mark.parametrize(
+    ("appose_status", "expected"),
+    [
+        ("CURRENT", "ready"),
+        ("STALE", "stale"),
+        ("MISSING", "missing"),
+        ("EXTERNAL", "stale"),
+        ("INCOMPATIBLE", "stale"),
+    ],
+)
+def test_environment_status_is_appose_s(monkeypatch, appose_status, expected):
+    # Appose's own status, not the pixi.toml text alone: it also covers the
+    # appose it adds for the worker, so a change of Appose version, which
+    # rebuilds, must not read as ready. Checked against a fake builder.
+    from enum import Enum
+
+    import appose
+
+    status = Enum("EnvStatus", [appose_status])[appose_status]
+
+    class FakeBuilder:
+        def name(self, _env_name):
+            return self
+
+        def status(self):
+            return status
+
+    monkeypatch.setattr(appose, "pixi", lambda _config: FakeBuilder())
+
+    assert skop.Runner().environment_status("minimal") == expected
